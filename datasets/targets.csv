@@ -1,0 +1,10 @@
+target,topic
+"Learning Outcomes:
+In this course, students learn topics about computer networks that are discussed comprehensively from layer 1 to layer 7. After attending this course, students are able to configure and implement simple computer networks according to existing protocol standards, are able to apply the concept of VLAN, Inter VLAN Routing , LAN Redundancy, Dynamic Addressing, LAN Security, Wireless LAN and Static Protocol Routing in a simple network
+Syllabus:
+Network Architecture and Topology, Network Protocols and Communications; OSI and TCP/IP Layers; Physical Layer, Data Link Layer, Ethernet Switching; Transport Layer, Application Layer; IPv4 Addressing; IPv6 Addressing; Subnetting; VLANs and Inter-VLAN Routing; Ether Channel; FHRP; DHCPv4; DHCPv6; LAN Security; Wireless LANs; Static Protocol Routing","comp_netw"
+"block","blockchain"
+"artifical","artif_int"
+"cloud","cloud_comp"
+"security","netw_sec"
+"data","database"

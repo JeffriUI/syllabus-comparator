@@ -1,0 +1,6 @@
+fate_llm[fate]==2.2.0
+python-dotenv
+langdetect
+deep_translator
+playwright
+matplotlib

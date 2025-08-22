@@ -1,0 +1,7 @@
+.venv
+.env
+.vscode
+modules/__pycache__
+modules/datasets/__pycache__
+modules/models/__pycache__
+modules/token_alignment/__pycache__
