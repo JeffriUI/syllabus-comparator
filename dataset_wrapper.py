@@ -1,15 +1,16 @@
 from pandas import read_csv, DataFrame, concat
-from datasets import load_dataset
+from datasets import Dataset
 
 targets = read_csv('datasets/targets.csv')
 dataset = DataFrame()
 
 for topic in targets['topic']:
-    courses = read_csv(f'scraper/courses_{topic}.csv')
-    courses = courses.drop(
-        columns=(courses.columns.to_list()[0:-1]))
+    courses = read_csv(f'scraper/{topic}/courses_{topic}.csv')
+    removed_columns = courses.columns.to_list()
+    removed_columns.remove('translated_skills_youll_gain')
+    courses = courses.drop(columns=(removed_columns))
     courses = courses.dropna(ignore_index=True)
-    courses = courses.rename(columns={'translated_description_and_objectives': 'course'})
+    courses = courses.rename(columns={'translated_skills_youll_gain': 'course'})
     courses['course_topic'] = [topic] * len(courses.index)
     df = courses.copy()
     target = targets[targets['topic']==topic]['target'].to_numpy()[0]
@@ -42,16 +43,15 @@ dataset = dataset.drop_duplicates(subset=['course', 'target'], keep='first')
 dataset = dataset.sort_index()
 dataset = dataset.reset_index(drop=True)
 print(dataset)
-dataset.to_csv('datasets/all/train.csv', index=False)
+dataset = Dataset.from_pandas(dataset, preserve_index=False)
 
 dataset_dir = "datasets/all"
-dataset = load_dataset(dataset_dir, split="train")
 
-dataset = dataset.train_test_split(train_size=0.6, seed=42)
-# Train split: 60%
-dataset['train'].to_csv(f"{dataset_dir}/train.csv")
-dataset = dataset['test'].train_test_split(test_size=0.5, seed=42)
-# Test split: 40% * 50% = 20%
+dataset = dataset.train_test_split(test_size=0.2, seed=42)
+# Test split: 20%
 dataset['test'].to_csv(f"{dataset_dir}/test.csv")
-# Validation split: 40% * 50% = 20%
-dataset['train'].to_csv(f"{dataset_dir}/val.csv")
+dataset = dataset['train'].train_test_split(test_size=0.2, seed=42)
+# Validation split: 80% * 20% = 16%
+dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
+# Train split: 80% * 80% = 64%
+dataset['train'].to_csv(f"{dataset_dir}/train.csv")

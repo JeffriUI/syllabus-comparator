@@ -4,7 +4,7 @@ import asyncio
 import json
 import csv
 import os
-import yaml
+# import yaml
 from langdetect import detect
 from deep_translator import GoogleTranslator
 from playwright.async_api import async_playwright
@@ -13,17 +13,29 @@ from playwright.async_api import async_playwright
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 SCRAPING_TOPICS = {
-    'comp_netw': {
-        'search_query': 'computer%20networking',
-        'db_name': 'comp_netw/courses_comp_netw.db',
-        'json_file': 'comp_netw/courses_comp_netw.json',
-        'csv_file': 'comp_netw/courses_comp_netw.csv',
+    'database': {
+        'search_query': 'database',
+        'db_name': 'database/courses_database.db',
+        'json_file': 'database/courses_database.json',
+        'csv_file': 'database/courses_database.csv',
     },
+    # 'comp_netw': {
+    #     'search_query': 'computer%20networking',
+    #     'db_name': 'comp_netw/courses_comp_netw.db',
+    #     'json_file': 'comp_netw/courses_comp_netw.json',
+    #     'csv_file': 'comp_netw/courses_comp_netw.csv',
+    # },
     'artif_int': {
         'search_query': 'artificial%20intelligence',
         'db_name': 'aritf_int/courses_artif_int.db',
         'json_file': 'aritf_int/courses_artif_int.json',
         'csv_file': 'aritf_int/courses_artif_int.csv',
+    },
+    'big_data': {
+        'search_query': 'big%20data',
+        'db_name': 'big_data/courses_big_data.db',
+        'json_file': 'big_data/courses_big_data.json',
+        'csv_file': 'big_data/courses_big_data.csv',
     },
     'cloud_comp': {
         'search_query': 'cloud%20computing',
@@ -37,18 +49,12 @@ SCRAPING_TOPICS = {
         'json_file': 'blockchain/courses_blockchain.json',
         'csv_file': 'blockchain/courses_blockchain.csv',
     },
-    'netw_sec': {
-        'search_query': 'network%20security',
-        'db_name': 'netw_sec/courses_netw_sec.db',
-        'json_file': 'netw_sec/courses_netw_sec.json',
-        'csv_file': 'netw_sec/courses_netw_sec.csv',
-    },
-    'database': {
-        'search_query': 'database',
-        'db_name': 'database/courses_database.db',
-        'json_file': 'database/courses_database.json',
-        'csv_file': 'database/courses_database.csv',
-    },
+    # 'netw_sec': {
+    #     'search_query': 'network%20security',
+    #     'db_name': 'netw_sec/courses_netw_sec.db',
+    #     'json_file': 'netw_sec/courses_netw_sec.json',
+    #     'csv_file': 'netw_sec/courses_netw_sec.csv',
+    # },
 }
 
 class Database:

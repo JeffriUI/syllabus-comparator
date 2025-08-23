@@ -1,10 +1,8 @@
 target,topic
-"Learning Outcomes:
-In this course, students learn topics about computer networks that are discussed comprehensively from layer 1 to layer 7. After attending this course, students are able to configure and implement simple computer networks according to existing protocol standards, are able to apply the concept of VLAN, Inter VLAN Routing , LAN Redundancy, Dynamic Addressing, LAN Security, Wireless LAN and Static Protocol Routing in a simple network
-Syllabus:
-Network Architecture and Topology, Network Protocols and Communications; OSI and TCP/IP Layers; Physical Layer, Data Link Layer, Ethernet Switching; Transport Layer, Application Layer; IPv4 Addressing; IPv6 Addressing; Subnetting; VLANs and Inter-VLAN Routing; Ether Channel; FHRP; DHCPv4; DHCPv6; LAN Security; Wireless LANs; Static Protocol Routing","comp_netw"
-"block","blockchain"
-"artifical","artif_int"
-"cloud","cloud_comp"
-"security","netw_sec"
-"data","database"
+"Network Architecture and Topology, Network Protocols and Communications; OSI and TCP/IP Layer; Physical Layer, Data Link Layer, Ethernet Switching; Transport Layer, Application Layer; IPv4 Addressing; IPv6 Addressing; Subnetting; VLANs and Inter-VLAN Routing; EtherChannel; FHRP; DHCPv4; DHCPv6; LAN Security; Wireless LAN; Static Protocol Routing","comp_netw"
+"Introduction to Blockchain; Cryptography Basics; Consensus Algorithms; Smart Contracts; Cryptocurrency; Blockchain Applications in Industry","blockchain"
+"Introduction to machine learning and artificial intelligence; Regression; Clustering; Non-ANN classifiers; ANN classifiers; Back-propagation algorithms; PCA for data reduction; Deep learning; ANN-based recognition system design","artif_int"
+"Introduction to cloud computing concepts; Introduction to Virtualization, Hypervisor, Container; IaaS, PaaS and SaaS Service Models; Introduction to Azure, GCS, and AWS platforms; Introduction for scalability and reliability features; Virtualization, Hypervisor, Container; Open source applications for cloud computing platforms","cloud_comp"
+"Data Security and Integrity; Vulnerabilities; Resource Protection; Private & Public Key Cryptography; Authentication; Network and Web Security;","netw_sec"
+"Introduction to Databases; Data Models; Entity-Relationship Model; Relational Model; SQL Basics; Advanced SQL; Database Normalization; Database Design; Transactions and Concurrency Control; Database Security","database"
+"Introduction to Data Engineering; Hadoop Architecture; The Hadoop Distributed Filesystem; Setting Up Hadoop Cluster; Administering Hadoop; MapReduce Framework; Developing a MapReduce Application; Hive Database; Spark Processing; Big Data Analytics Project","big_data"
