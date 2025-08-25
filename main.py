@@ -1,5 +1,6 @@
 import os
 import json
+from subprocess import _InputString
 import torch
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -263,25 +264,19 @@ def test(data_dir, model_dir):
     test_data = ClassDataset(slm_pretrained_path)
     test_data.load(data_dir, split="test")
     
-    input = test_data.ds.remove_columns('labels')
-    
     y_true = test_data.ds['labels'].to_list()
-    
-    # test_df = pd.DataFrame(
-    #     {'True': test_data.ds['labels'].to_list(), 'Direct': [], 'FedClient1': [], 'FedClient2': []}
-    # )
+    inputs = test_data.ds.remove_columns('labels')
 
     for model in models.keys():
         with torch.no_grad():
-            logits = models[model](**input).logits
+            logits = models[model](**inputs).logits
 
         y_pred = logits.argmax().tolist()
-        # test_df[model] = y_pred
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
         conf_matrix[model] = confusion_matrix(y_true, y_pred)
         fpr, tpr, _ = roc_curve(y_true, y_pred)
         roc_auc = auc(fpr, tpr)
-        plt.plot(fpr, tpr, label=f'{direct_model} (AUC = {roc_auc:.2f})')
+        plt.plot(fpr, tpr, label=f'{model} (AUC = {roc_auc:.2f})')
     
     # Visualize AUC ROC Curve
     plt.plot([0, 1], [0, 1], 'r--', label='Random Guess')
