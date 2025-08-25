@@ -4,7 +4,7 @@ import asyncio
 import json
 import csv
 import os
-# import yaml
+import yaml
 from langdetect import detect
 from deep_translator import GoogleTranslator
 from playwright.async_api import async_playwright
@@ -12,50 +12,50 @@ from playwright.async_api import async_playwright
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-SCRAPING_TOPICS = {
-    'database': {
-        'search_query': 'database',
-        'db_name': 'database/courses_database.db',
-        'json_file': 'database/courses_database.json',
-        'csv_file': 'database/courses_database.csv',
-    },
-    # 'comp_netw': {
-    #     'search_query': 'computer%20networking',
-    #     'db_name': 'comp_netw/courses_comp_netw.db',
-    #     'json_file': 'comp_netw/courses_comp_netw.json',
-    #     'csv_file': 'comp_netw/courses_comp_netw.csv',
-    # },
-    'artif_int': {
-        'search_query': 'artificial%20intelligence',
-        'db_name': 'aritf_int/courses_artif_int.db',
-        'json_file': 'aritf_int/courses_artif_int.json',
-        'csv_file': 'aritf_int/courses_artif_int.csv',
-    },
-    'big_data': {
-        'search_query': 'big%20data',
-        'db_name': 'big_data/courses_big_data.db',
-        'json_file': 'big_data/courses_big_data.json',
-        'csv_file': 'big_data/courses_big_data.csv',
-    },
-    'cloud_comp': {
-        'search_query': 'cloud%20computing',
-        'db_name': 'cloud_comp/courses_cloud_comp.db',
-        'json_file': 'cloud_comp/courses_cloud_comp.json',
-        'csv_file': 'cloud_comp/courses_cloud_comp.csv',
-    },
-    'blockchain': {
-        'search_query': 'blockchain',
-        'db_name': 'blockchain/courses_blockchain.db',
-        'json_file': 'blockchain/courses_blockchain.json',
-        'csv_file': 'blockchain/courses_blockchain.csv',
-    },
-    # 'netw_sec': {
-    #     'search_query': 'network%20security',
-    #     'db_name': 'netw_sec/courses_netw_sec.db',
-    #     'json_file': 'netw_sec/courses_netw_sec.json',
-    #     'csv_file': 'netw_sec/courses_netw_sec.csv',
-    # },
-}
+# SCRAPING_TOPICS = {
+#     'database': {
+#         'search_query': 'database',
+#         'db_name': 'database/courses_database.db',
+#         'json_file': 'database/courses_database.json',
+#         'csv_file': 'database/courses_database.csv',
+#     },
+#     # 'comp_netw': {
+#     #     'search_query': 'computer%20networking',
+#     #     'db_name': 'comp_netw/courses_comp_netw.db',
+#     #     'json_file': 'comp_netw/courses_comp_netw.json',
+#     #     'csv_file': 'comp_netw/courses_comp_netw.csv',
+#     # },
+#     'artif_int': {
+#         'search_query': 'artificial%20intelligence',
+#         'db_name': 'aritf_int/courses_artif_int.db',
+#         'json_file': 'aritf_int/courses_artif_int.json',
+#         'csv_file': 'aritf_int/courses_artif_int.csv',
+#     },
+#     'big_data': {
+#         'search_query': 'big%20data',
+#         'db_name': 'big_data/courses_big_data.db',
+#         'json_file': 'big_data/courses_big_data.json',
+#         'csv_file': 'big_data/courses_big_data.csv',
+#     },
+#     'cloud_comp': {
+#         'search_query': 'cloud%20computing',
+#         'db_name': 'cloud_comp/courses_cloud_comp.db',
+#         'json_file': 'cloud_comp/courses_cloud_comp.json',
+#         'csv_file': 'cloud_comp/courses_cloud_comp.csv',
+#     },
+#     'blockchain': {
+#         'search_query': 'blockchain',
+#         'db_name': 'blockchain/courses_blockchain.db',
+#         'json_file': 'blockchain/courses_blockchain.json',
+#         'csv_file': 'blockchain/courses_blockchain.csv',
+#     },
+#     # 'netw_sec': {
+#     #     'search_query': 'network%20security',
+#     #     'db_name': 'netw_sec/courses_netw_sec.db',
+#     #     'json_file': 'netw_sec/courses_netw_sec.json',
+#     #     'csv_file': 'netw_sec/courses_netw_sec.csv',
+#     # },
+# }
 
 class Database:
     """Database class to maintain a persistent connection and handle updates."""
@@ -130,7 +130,7 @@ def translate_text(text):
         logging.error(f"Error translating text: {e}")
         return text
 
-async def update_json_and_csv(db, topic):
+async def update_json_and_csv(db, topic, config):
     """Update JSON and CSV files with the latest database state."""
     courses = db.get_all_courses()
 
@@ -149,11 +149,11 @@ async def update_json_and_csv(db, topic):
         }
         for course in courses
     ]
-    with open(SCRAPING_TOPICS[topic]['json_file'], 'w', encoding='utf-8') as json_file:
+    with open(f"{topic}/{config[topic]['json_file']}", 'w', encoding='utf-8') as json_file:
         json.dump(json_data, json_file, indent=4, ensure_ascii=False)
 
     # Update CSV
-    with open(SCRAPING_TOPICS[topic]['csv_file'], 'w', newline='', encoding='utf-8') as csv_file:
+    with open(f"{topic}/{config[topic]['csv_file']}", 'w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow([
             "url", "original_title", "translated_title", "original_what_youll_learn",
@@ -163,7 +163,7 @@ async def update_json_and_csv(db, topic):
         ])
         writer.writerows(courses)
 
-async def scrape_course_details(course_url, browser, db, topic):
+async def scrape_course_details(course_url, browser, db, topic, config):
     """Scrape course details and update storage."""
     course_details = {
         "URL": course_url,
@@ -257,13 +257,13 @@ async def scrape_course_details(course_url, browser, db, topic):
         # Insert or update course in database and storage
         db.insert_or_update_course(course_details)
         logging.info(f"Successfully updated course: {course_details['URL']}")
-        await update_json_and_csv(db, topic)
+        await update_json_and_csv(db, topic, config)
 
     except Exception as e:
         logging.error(f"Error scraping course: {e}")
 
 # Scrape all courses in a single page function
-async def scrape_all_courses(base_url, db, topic):
+async def scrape_all_courses(base_url, db, topic, config):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
@@ -280,7 +280,7 @@ async def scrape_all_courses(base_url, db, topic):
                 course_links = await page.locator('a[data-click-key="seo_entity_page.search.click.search_card"]').all()
                 for course in course_links:
                     course_url = f"https://www.coursera.org{await course.get_attribute('href')}"
-                    await scrape_course_details(course_url, browser, db, topic)
+                    await scrape_course_details(course_url, browser, db, topic, config)
             except Exception as e:
                 logging.warning(f"Error extracting course links: {e}")
 
@@ -333,31 +333,31 @@ def display_existing_data(db):
 
 def main(config_path=str):
     """Main function."""
-    # with open(config_path, 'r') as f:
-    #     config = yaml.safe_load(f)
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
     
-    for k in SCRAPING_TOPICS.keys():
-        db = Database(SCRAPING_TOPICS[k]['db_name'])
+    for k in config.keys():
+        db = Database(f"{k}/{config[k]['db_name']}")
         try:
             # Ensure JSON and CSV files exist
-            if not os.path.exists(SCRAPING_TOPICS[k]['json_file']):
-                with open(SCRAPING_TOPICS[k]['json_file'], 'w') as f:
+            if not os.path.exists(f"{k}/{config[k]['json_file']}"):
+                with open(f"{k}/{config[k]['json_file']}", 'w') as f:
                     json.dump([], f)
-            if not os.path.exists(SCRAPING_TOPICS[k]['csv_file']):
-                with open(SCRAPING_TOPICS[k]['csv_file'], 'w') as f:
+            if not os.path.exists(f"{k}/{config[k]['csv_file']}"):
+                with open(f"{k}/{config[k]['csv_file']}", 'w') as f:
                     pass
 
             # Display preexisting data
             display_existing_data(db)
 
             # Start scraping
-            topic = SCRAPING_TOPICS[k]['search_query']
-            base_url = f'https://www.coursera.org/courses?query={topic}&page=1&productDuration=1-3%20Months&productDuration=3-6%20Months'
-            asyncio.run(scrape_all_courses(base_url, db, k))
+            query = config[k]['search_query']
+            base_url = f'https://www.coursera.org/courses?query={query}&page=1&productDuration=1-3%20Months&productDuration=3-6%20Months'
+            asyncio.run(scrape_all_courses(base_url, db, k, config))
         finally:
             db.close()
 
 if __name__ == "__main__":
-    # config_path = "scraper_config.yaml"
-    # main(config_path)
-    main()
+    config_path = "scraper_config.yaml"
+    main(config_path)
+    # main()
