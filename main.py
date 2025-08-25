@@ -33,20 +33,19 @@ batch_size = 4
 llm_lr = 3e-5
 slm_lr = 3e-5
 
-dataset_directory = "datasets/"
+dataset_directory = "datasets"
 
 llm_model_saved_directory = "models/llm"
 slm_models_saved_directory = ["models/slm_1",
                               "models/slm_2"]
 
-# Building vocab mappings
-def build_vocab_mappings():
+def login_hf():
     load_dotenv()
-
     HF_ACCESS_TOKEN = os.getenv('HF_ACCESS_TOKEN')
-
     login(token=HF_ACCESS_TOKEN)
 
+# Building vocab mappings
+def build_vocab_mappings():
     # Building vocab mappings
     _ = get_vocab_mappings(slm_pretrained_path, llm_pretrained_path, slm_to_llm_vocab_mapping_path, num_processors=16)
     _ = get_vocab_mappings(llm_pretrained_path, slm_pretrained_path, llm_to_slm_vocab_mapping_path, num_processors=16)
@@ -88,6 +87,7 @@ def train_llm(ctx, pub_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
         post_fedavg=True,
+        eval_strategy="epoch",
     )
 
     fed_args = FedAVGArguments(
@@ -107,7 +107,7 @@ def train_llm(ctx, pub_data_dir):
         training_args=training_args,
         fed_args=fed_args,
         train_set=pub_data_train.ds,
-        # val_set=pub_data_val.ds,
+        val_set=pub_data_val.ds,
         tokenizer=tokenizer,
         slm_tokenizers=slm_tokenizers,
         slm_to_llm_vocab_mappings=vocab_mapping,
@@ -140,7 +140,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
     priv_data_val = ClassDataset(slm_pretrained_path)
     priv_data_val.load(priv_data_dir, split="validation")
     
-    slm_index = int(priv_data_dir[-2]) - 1
+    slm_index = int(priv_data_dir[-1]) - 1
 
     training_args = FedMKTTrainingArguments(
         global_epochs=global_epochs,
@@ -160,6 +160,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(slm_pretrained_path).vocab_size,
         post_fedavg=True,
+        eval_strategy="epoch",
     )
 
     fed_args = FedAVGArguments(
@@ -180,7 +181,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         fed_args=fed_args,
         pub_train_set=pub_data_train.ds,
         priv_train_set=priv_data_train.ds,
-        # val_set=priv_data_val.ds,
+        val_set=priv_data_val.ds,
         tokenizer=tokenizer,
         save_trainable_weights_only=True,
         llm_tokenizer=llm_tokenizer,
@@ -228,6 +229,7 @@ def train_direct(data_dir):
         weight_decay=0.1,
         max_grad_norm=1.0,
         use_cpu=False,
+        eval_strategy="epoch",
     )
 
     tokenizer = get_tokenizer(slm_pretrained_path)
@@ -237,6 +239,7 @@ def train_direct(data_dir):
         tokenizer=tokenizer,
         data_collator=DataCollatorForSeq2Seq(tokenizer),
         train_dataset=data_train.ds,
+        eval_dataset=data_val.ds,
         args=training_args,
     )
 
@@ -312,9 +315,9 @@ def run(ctx: Context):
     # Or, run build_vocab_mappings.py separately to save time
     # build_vocab_mappings()
     
-    pub_data_dir = f'{dataset_directory}public/'
-    priv_data_dir_1 = f'{dataset_directory}private_1/'
-    priv_data_dir_2 = f'{dataset_directory}private_2/'
+    pub_data_dir = f'{dataset_directory}/public'
+    priv_data_dir_1 = f'{dataset_directory}/private_1'
+    priv_data_dir_2 = f'{dataset_directory}/private_2'
     
     if ctx.is_on_arbiter:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -325,7 +328,7 @@ def run(ctx: Context):
     else:
         if ctx.local.party[1] == "9999":
             os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-            slm_idx = 1
+        #     slm_idx = 1
         # elif ctx.local.party[1] == "10000":
         #     os.environ["CUDA_VISIBLE_DEVICES"] = "3"
         #     slm_idx = 2
@@ -338,8 +341,9 @@ def run(ctx: Context):
         train_slm(ctx, pub_data_dir, priv_data_dir_2)
 
 if __name__ == "__main__":
+    login_hf()
     launch(run)
-    data_dir = f"{dataset_directory}all/"
-    model_dir = "models/"
+    data_dir = f"{dataset_directory}/all"
+    model_dir = "models"
     train_direct(data_dir)
     test(data_dir, model_dir)
