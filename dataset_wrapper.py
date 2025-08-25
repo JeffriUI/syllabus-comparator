@@ -1,11 +1,11 @@
 from pandas import read_csv, DataFrame, concat
 from datasets import Dataset
+import yaml
 
-def wrap_dataset(targets_path):
-    targets = read_csv(targets_path)
+def wrap_dataset(targets, topics):
     data = DataFrame()
     
-    for topic in targets['topic']:
+    for topic in topics:
         courses = read_csv(f'scraper/{topic}/courses_{topic}.csv')
         
         # Remove all other columns from scrapping results
@@ -67,8 +67,7 @@ def wrap_dataset(targets_path):
     
     return data
 
-def split_dataset(data):
-    dataset_dir = "datasets/all"
+def split_dataset(data, dataset_dir):
     dataset = Dataset.from_pandas(data, preserve_index=False)
 
     dataset = dataset.train_test_split(test_size=0.2, seed=42)
@@ -83,5 +82,14 @@ def split_dataset(data):
 
 if __name__ == "__main__":
     targets_path = "datasets/targets.csv"
-    data = wrap_dataset(targets_path)
-    split_dataset(data)
+    config_path = "wrapper_config.yaml"
+    
+    targets = read_csv(targets_path)
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    for k in config.keys():
+        dataset_dir = config[k]['directory']
+        topics = config[k]['topics']
+        data = wrap_dataset(targets, topics=topics)
+        split_dataset(data, dataset_dir=dataset_dir)
