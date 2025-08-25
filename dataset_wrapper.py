@@ -67,18 +67,25 @@ def wrap_dataset(targets, topics):
     
     return data
 
-def split_dataset(data, dataset_dir):
+def split_dataset(data, dataset_dir, split_test):
     dataset = Dataset.from_pandas(data, preserve_index=False)
 
-    dataset = dataset.train_test_split(test_size=0.2, seed=42)
-    # Test split: 20%
-    dataset['test'].to_csv(f"{dataset_dir}/test.csv")
-    
-    dataset = dataset['train'].train_test_split(test_size=0.2, seed=42)
-    # Validation split: 80% * 20% = 16%
-    dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
-    # Train split: 80% * 80% = 64%
-    dataset['train'].to_csv(f"{dataset_dir}/train.csv")
+    if split_test:
+        dataset = dataset.train_test_split(test_size=0.2, seed=42)
+        # Test split: 20%
+        dataset['test'].to_csv(f"{dataset_dir}/test.csv")
+
+        dataset = dataset['train'].train_test_split(test_size=0.2, seed=42)
+        # Validation split: 80% * 20% = 16%
+        dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
+        # Train split: 80% * 80% = 64%
+        dataset['train'].to_csv(f"{dataset_dir}/train.csv")
+    else: 
+        dataset = dataset.train_test_split(train_size=0.8, seed=42)
+        # Train split: 80%
+        dataset['train'].to_csv(f"{dataset_dir}/train.csv")
+        # Validation split: 20%
+        dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
 
 if __name__ == "__main__":
     targets_path = "datasets/targets.csv"
@@ -91,5 +98,7 @@ if __name__ == "__main__":
     for k in config.keys():
         dataset_dir = config[k]['directory']
         topics = config[k]['topics']
+        # splits = config[k]['splits']
+        split_test = config[k]['split_test']
         data = wrap_dataset(targets, topics=topics)
-        split_dataset(data, dataset_dir=dataset_dir)
+        split_dataset(data, dataset_dir=dataset_dir, split_test=split_test)
