@@ -284,16 +284,15 @@ def test(data_dir, model_dir):
     plt.ylabel('True Positive Rate')
     plt.title('ROC Curves for Two Models')
     plt.legend()
-    # plt.show()
     plt.savefig("graphs/auc_roc_curve.png")
+    plt.show()
     
     # Visualize F1-scores distribution
-    fig, ax = plt.subplots()
-    bars = ax.bar(f1_scores.keys(), f1_scores.values(), bottom=np.zeros(3))
-    ax.set_title('F1-scores Distribution')
-    ax.bar_label(bars, fmt='%.4f')
-    # plt.show()
+    bars = plt.bar(f1_scores.keys(), f1_scores.values(), bottom=np.zeros(3))
+    plt.title('F1-scores Distribution')
+    plt.bar_label(bars, fmt='%.4f')
     plt.savefig("graphs/f1_scores.png")
+    plt.show()
     
     # Visualize Confusion Matrix
     fig, axs = plt.subplots(1, 3)
@@ -302,8 +301,8 @@ def test(data_dir, model_dir):
         axs[i].plot(cmap=plt.cm.Blues)
         axs[i].set_title(model + 'Model')
     fig.suptitle('Confusion Matrix Across Models', va='bottom')
-    # plt.show()
     plt.savefig("graphs/confusion_matrix.png")
+    plt.show()
 
 def run(ctx: Context):
     # Command line to build vocab mappings
