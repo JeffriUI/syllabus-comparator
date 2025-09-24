@@ -26,8 +26,13 @@ class ClassDataset(Dataset):
         self.tokenizer = None
         self.sample_ids = None
         self.tokenizer_name_or_path = tokenizer_name_or_path
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.tokenizer_name_or_path)
+        if 'llama' in tokenizer_name_or_path.lower():
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.tokenizer_name_or_path, add_eos_token=True)
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.tokenizer_name_or_path)
         self.padding = padding
         self.truncation = truncation
         self.max_length = text_max_length
