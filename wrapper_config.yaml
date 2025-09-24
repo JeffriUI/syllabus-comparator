@@ -7,6 +7,7 @@ all:
     - "comp_netw"
     - "database"
     - "netw_sec"
+    - "big_data"
   split_test: True
   # splits:
   #   - "train"
@@ -15,8 +16,9 @@ all:
 public:
   directory: "datasets/public"
   topics:
-    - "comp_netw"
-    - "netw_sec"
+    - "artif_int"
+    - "database"
+    - "big_data"
   split_test: False
   # splits:
   #   - "train"
@@ -24,8 +26,8 @@ public:
 private_1:
   directory: "datasets/private_1"
   topics:
-    - "artif_int"
-    - "database"
+    - "comp_netw"
+    - "netw_sec"
   split_test: False
   # splits:
   #   - "train"

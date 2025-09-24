@@ -3,6 +3,11 @@ artif_int:
   db_name: "courses_artif_int.db"
   json_file: "courses_artif_int.json"
   csv_file: "courses_artif_int.csv"
+big_data:
+  search_query: "big%20data"
+  db_name: "courses_big_data.db"
+  json_file: "courses_big_data.json"
+  csv_file: "courses_big_data.csv"
 blockchain:
   search_query: "blockchain"
   db_name: "courses_blockchain.db"
