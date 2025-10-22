@@ -88,7 +88,7 @@ def train_llm(ctx, pub_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
         post_fedavg=True,
-        eval_strategy="epoch",
+        evaluation_strategy="epoch",
     )
 
     fed_args = FedAVGArguments(
@@ -161,7 +161,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(slm_pretrained_path).vocab_size,
         post_fedavg=True,
-        eval_strategy="epoch",
+        evaluation_strategy="epoch",
     )
 
     fed_args = FedAVGArguments(
@@ -230,7 +230,7 @@ def train_direct(data_dir):
         weight_decay=0.1,
         max_grad_norm=1.0,
         use_cpu=False,
-        eval_strategy="epoch",
+        evaluation_strategy="epoch",
     )
 
     tokenizer = get_tokenizer(slm_pretrained_path)
