@@ -11,11 +11,11 @@ from huggingface_hub import login
 from fate.arch import Context
 from fate.arch.launchers.multiprocess_launcher import launch
 from fate.ml.nn.homo.fedavg import FedAVGArguments
-from fate_llm.algo.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
+from modules.fedmkt.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
 from fate_llm.data.tokenizers.cust_tokenizer import get_tokenizer
 from fate_llm.model_zoo.pellm.roberta import Roberta
 from peft import LoraConfig, TaskType
-from transformers import AutoConfig, DataCollatorForSeq2Seq, RobertaForSequenceClassification
+from transformers import AutoConfig, DataCollatorWithPadding, RobertaForSequenceClassification
 from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc, ConfusionMatrixDisplay
 
 # Local modules for adapted classes and functions
@@ -187,15 +187,15 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         save_trainable_weights_only=True,
         llm_tokenizer=llm_tokenizer,
         llm_to_slm_vocab_mapping=vocab_mapping,
-        data_collator=DataCollatorForSeq2Seq(tokenizer)
+        data_collator=DataCollatorWithPadding(tokenizer)
     )
 
     trainer.train()
     trainer.save_model(slm_models_saved_directory[slm_index])
     
 def train_direct(data_dir):
-    from transformers import Seq2SeqTrainer
-    from fate_llm.trainer.seq2seq_trainer import Seq2SeqTrainingArguments
+    from transformers import Trainer
+    from modules.trainer.trainer import TrainingArguments
     
     lora_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
@@ -215,7 +215,7 @@ def train_direct(data_dir):
     data_val = ClassDataset(slm_pretrained_path)
     data_val.load(data_dir, split="validation")
     
-    training_args = Seq2SeqTrainingArguments(
+    training_args = TrainingArguments(
         per_device_train_batch_size=1,
         gradient_accumulation_steps=batch_size,
         learning_rate=slm_lr,
@@ -235,10 +235,10 @@ def train_direct(data_dir):
 
     tokenizer = get_tokenizer(slm_pretrained_path)
 
-    trainer = Seq2SeqTrainer(
+    trainer = Trainer(
         model=model,
         tokenizer=tokenizer,
-        data_collator=DataCollatorForSeq2Seq(tokenizer),
+        data_collator=DataCollatorWithPadding(tokenizer),
         train_dataset=data_train.ds,
         eval_dataset=data_val.ds,
         args=training_args,
