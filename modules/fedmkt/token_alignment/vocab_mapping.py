@@ -8,7 +8,7 @@ import multiprocessing
 import logging
 
 from fate_llm.data.tokenizers.cust_tokenizer import get_tokenizer
-from modules.token_alignment.special_token_mapping import TOKENIZER_TO_SPECIAL_TOKEN
+from modules.fedmkt.token_alignment.special_token_mapping import TOKENIZER_TO_SPECIAL_TOKEN
 
 logger = logging.getLogger(__name__)
 

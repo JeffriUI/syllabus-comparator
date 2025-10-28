@@ -11,7 +11,6 @@ from huggingface_hub import login
 from fate.arch import Context
 from fate.arch.launchers.multiprocess_launcher import launch
 from fate.ml.nn.homo.fedavg import FedAVGArguments
-from modules.fedmkt.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
 from fate_llm.data.tokenizers.cust_tokenizer import get_tokenizer
 from fate_llm.model_zoo.pellm.roberta import Roberta
 from peft import LoraConfig, TaskType
@@ -21,7 +20,8 @@ from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc, Confusio
 # Local modules for adapted classes and functions
 from modules.datasets.class_dataset import ClassDataset
 from modules.models.class_llama import ClassLLaMa
-from modules.token_alignment.vocab_mapping import get_vocab_mappings
+from modules.fedmkt.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
+from modules.fedmkt.token_alignment.vocab_mapping import get_vocab_mappings
 
 llm_pretrained_path = "meta-llama/Llama-2-7b-hf"
 slm_pretrained_path = "FacebookAI/roberta-large"
