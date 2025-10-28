@@ -98,6 +98,10 @@ def generate_pub_data_logits(inputs, model, training_args, data_collator):
         inputs[PER_STEP_LOGITS] = selected_logits
         inputs[PER_STEP_INDICES] = selected_indices
         inputs[METRIC] = metric
+        
+        # Upcasting logits and metric data so it is supportable by numpy
+        inputs[PER_STEP_LOGITS] = inputs[PER_STEP_LOGITS].float()
+        inputs[METRIC] = inputs[METRIC].float()
 
         del logits
 
