@@ -18,10 +18,10 @@ class Metric(object):
 
     @classmethod
     def cal_ce(cls, logits, input_ids, attention_mask, labels, training_args):
-        metric = F.cross_entropy(logits[..., :-1, :].contiguous().view(-1, logits.size(-1)),
-                                 labels[..., 1:].contiguous().view(-1), reduction="none").view(logits.size(0), -1)
+        metric = F.cross_entropy(logits[..., :].contiguous().view(-1, logits.size(-1)),
+                                 labels.contiguous().view(-1), reduction="none").view(logits.size(0), -1)
 
-        metric = (metric * attention_mask[..., 1:]).sum(dim=-1) / attention_mask[..., 1:].sum(dim=-1)
+        metric = (metric * attention_mask[..., :]).sum(dim=-1) / attention_mask[..., :].sum(dim=-1)
 
         return metric
 
@@ -36,7 +36,9 @@ class LogitsSelection(object):
 
     @classmethod
     def select_highest(cls, logits, top_k_logits_keep):
-        top_k_logits, top_k_indices = torch.topk(logits.cuda(), k=top_k_logits_keep)
+        # top_k_logits, top_k_indices = torch.topk(logits.cuda(), k=top_k_logits_keep)
+        # Since the program is run without cuda, changed cuda() to cpu() to avoid errors
+        top_k_logits, top_k_indices = torch.topk(logits.cpu(), k=top_k_logits_keep)
         logits.cpu()
 
         return top_k_logits, top_k_indices
