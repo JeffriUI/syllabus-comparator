@@ -101,7 +101,7 @@ if __name__ == "__main__":
         path = f"datasets/public/{split}.csv"
         df = read_csv(path)
         df["label"] = to_numeric(df["label"], downcast="integer")
-        df.to_csv(path)
+        df.to_csv(path, index=False)
     
     # Combining public and private datasets to create total dataset for non-federal testing
     for split in splits:
@@ -109,4 +109,6 @@ if __name__ == "__main__":
         private_1 = read_csv(f"datasets/private_1/{split}.csv")
         private_2 = read_csv(f"datasets/private_2/{split}.csv")
         all = concat([public, private_1, private_2], ignore_index=True)
-        all.to_csv(f"datasets/all/{split}.csv")
+        path = f"datasets/all/{split}.csv"
+        all.to_csv(path, index=False)
+        print(f"Combined {split} dataset saved to: {path}")
