@@ -19,7 +19,7 @@ class Metric(object):
     @classmethod
     def cal_ce(cls, logits, input_ids, attention_mask, labels, training_args):
         metric = F.cross_entropy(logits[..., :].contiguous().view(-1, logits.size(-1)),
-                                 labels.contiguous().view(-1), reduction="none").view(logits.size(0), -1)
+                                 labels.contiguous().view(-1), reduction="none")
 
         metric = (metric * attention_mask[..., :]).sum(dim=-1) / attention_mask[..., :].sum(dim=-1)
 
@@ -45,10 +45,7 @@ class LogitsSelection(object):
 
 
 def generate_pub_data_logits(inputs, model, training_args, data_collator):
-    from transformers import LlamaPreTrainedModel
     input_keys = ["attention_mask", "input_ids", "labels"]
-    if isinstance(model, LlamaPreTrainedModel):
-        inputs["labels"] = inputs["input_ids"]
     inputs_per_batched = [dict() for _ in range(len(inputs[input_keys[1]]))]
     for key in input_keys:
         if key not in inputs:
