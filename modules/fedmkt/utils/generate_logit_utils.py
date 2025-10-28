@@ -46,6 +46,7 @@ class LogitsSelection(object):
 
 def generate_pub_data_logits(inputs, model, training_args, data_collator):
     input_keys = ["attention_mask", "input_ids", "labels"]
+    inputs["labels"] = inputs["input_ids"]
     inputs_per_batched = [dict() for _ in range(len(inputs[input_keys[1]]))]
     for key in input_keys:
         if key not in inputs:
