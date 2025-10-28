@@ -1,4 +1,4 @@
-from pandas import read_csv, DataFrame, concat
+from pandas import read_csv, DataFrame, concat, to_numeric
 from datasets import Dataset
 import yaml
 
@@ -67,25 +67,18 @@ def wrap_dataset(targets, topics):
     
     return data
 
-def split_dataset(data, dataset_dir, split_test):
+def split_dataset(data, dataset_dir):
     dataset = Dataset.from_pandas(data, preserve_index=False)
 
-    if split_test:
-        dataset = dataset.train_test_split(test_size=0.2, seed=42)
-        # Test split: 20%
-        dataset['test'].to_csv(f"{dataset_dir}/test.csv")
+    dataset = dataset.train_test_split(test_size=0.2, seed=42)
+    # Test split: 20%
+    dataset['test'].to_csv(f"{dataset_dir}/test.csv")
 
-        dataset = dataset['train'].train_test_split(test_size=0.2, seed=42)
-        # Validation split: 80% * 20% = 16%
-        dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
-        # Train split: 80% * 80% = 64%
-        dataset['train'].to_csv(f"{dataset_dir}/train.csv")
-    else: 
-        dataset = dataset.train_test_split(train_size=0.8, seed=42)
-        # Train split: 80%
-        dataset['train'].to_csv(f"{dataset_dir}/train.csv")
-        # Validation split: 20%
-        dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
+    dataset = dataset['train'].train_test_split(test_size=0.2, seed=42)
+    # Validation split: 80% * 20% = 16%
+    dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
+    # Train split: 80% * 80% = 64%
+    dataset['train'].to_csv(f"{dataset_dir}/train.csv")
 
 if __name__ == "__main__":
     targets_path = "datasets/targets.csv"
@@ -98,7 +91,22 @@ if __name__ == "__main__":
     for k in config.keys():
         dataset_dir = config[k]['directory']
         topics = config[k]['topics']
-        # splits = config[k]['splits']
-        split_test = config[k]['split_test']
         data = wrap_dataset(targets, topics=topics)
-        split_dataset(data, dataset_dir=dataset_dir, split_test=split_test)
+        split_dataset(data, dataset_dir=dataset_dir)
+        print(f"Dataset saved in path: {dataset_dir}")
+    
+    # Typecasting specially for public datasets having float values for labels
+    splits = ["train", "validation", "test"]
+    for split in splits:
+        path = f"datasets/public/{split}.csv"
+        df = read_csv(path)
+        df["label"] = to_numeric(df["label"], downcast="integer")
+        df.to_csv(path)
+    
+    # Combining public and private datasets to create total dataset for non-federal testing
+    for split in splits:
+        public = read_csv(f"datasets/public/{split}.csv")
+        private_1 = read_csv(f"datasets/private_1/{split}.csv")
+        private_2 = read_csv(f"datasets/private_2/{split}.csv")
+        all = concat([public, private_1, private_2], ignore_index=True)
+        all.to_csv(f"datasets/all/{split}.csv")

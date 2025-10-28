@@ -1,43 +1,16 @@
-all:
-  directory: "datasets/all"
-  topics:
-    - "artif_int"
-    - "blockchain"
-    - "cloud_comp"
-    - "comp_netw"
-    - "database"
-    - "netw_sec"
-    - "big_data"
-  split_test: True
-  # splits:
-  #   - "train"
-  #   - "validation"
-  #   - "test"
 public:
   directory: "datasets/public"
   topics:
     - "artif_int"
     - "database"
     - "big_data"
-  split_test: False
-  # splits:
-  #   - "train"
-  #   - "validation"
 private_1:
   directory: "datasets/private_1"
   topics:
     - "comp_netw"
     - "netw_sec"
-  split_test: False
-  # splits:
-  #   - "train"
-  #   - "validation"
 private_2:
   directory: "datasets/private_2"
   topics:
     - "blockchain"
     - "cloud_comp"
-  split_test: False
-  # splits:
-  #   - "train"
-  #   - "validation"
