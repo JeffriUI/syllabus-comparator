@@ -5,14 +5,14 @@ from dataclasses import dataclass, field
 
 import transformers
 
-from modules.trainer.trainer import TrainingArguments
+from modules.trainer.trainer import Trainer, TrainingArguments
 from typing import Dict, Optional, List, Callable, Union
 from fate.arch import Context
 from fate.ml.nn.trainer.trainer_base import FedArguments
 from torch.utils.data import Dataset
 from transformers.trainer_callback import TrainerCallback
 from transformers import PreTrainedTokenizer
-from transformers import Trainer
+# from transformers import Trainer
 from transformers.trainer_utils import EvalPrediction
 from transformers.modeling_utils import PreTrainedModel
 from transformers.modeling_utils import unwrap_model

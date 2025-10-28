@@ -69,6 +69,11 @@ class FedMKTTrainer(Trainer):
             # We don't use .loss here since the model may return tuples instead of ModelOutput.
             loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
 
+        # Custom logic to fix issues with non-scalar loss output being incompatible with autograd
+        # with non-scalar output most likely due to parallel processing outputting partial loss on each GPU
+        if loss.numel() != 1:
+            loss = loss.sum()
+
         batch_size, seq_len, vocab_size = outputs["logits"].size(0), outputs["logits"].size(1), outputs["logits"].size(2)
 
         aligned_rewards = []
