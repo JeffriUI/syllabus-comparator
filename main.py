@@ -73,6 +73,7 @@ def train_llm(ctx, pub_data_dir):
     training_args = FedMKTTrainingArguments(
         global_epochs=global_epochs,
         per_device_train_batch_size=1,
+        per_device_eval_batch_size=1,
         gradient_accumulation_steps=batch_size,
         learning_rate=llm_lr,
         output_dir="outputs/",
@@ -147,6 +148,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
     training_args = FedMKTTrainingArguments(
         global_epochs=global_epochs,
         per_device_train_batch_size=1,
+        per_device_eval_batch_size=1,
         gradient_accumulation_steps=batch_size,
         learning_rate=slm_lr,
         output_dir="outputs/",
@@ -219,6 +221,7 @@ def train_direct(data_dir):
     
     training_args = TrainingArguments(
         per_device_train_batch_size=1,
+        per_device_eval_batch_size=1,
         gradient_accumulation_steps=batch_size,
         learning_rate=slm_lr,
         output_dir="outputs/",
