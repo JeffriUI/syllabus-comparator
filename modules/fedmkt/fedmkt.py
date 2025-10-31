@@ -219,18 +219,33 @@ class FedMKTSLM(FedMKTBase):
             logger.info(f"begin {i}-th global kd process")
             priv_data_training_args = self._get_priv_data_training_args()
 
-            priv_trainer = Trainer(
-                model=self.model,
-                tokenizer=self.tokenizer,
-                data_collator=self.priv_data_collator,
-                train_dataset=self.priv_train_set,
-                args=priv_data_training_args,
-                model_init=self.model_init if not i else None,
-                compute_metrics=self.compute_metrics,
-                callbacks=self.callbacks,
-                optimizers=(self.priv_optimizer, self.priv_scheduler),
-                preprocess_logits_for_metrics=self.preprocess_logits_for_metrics
-            )
+            if self.training_args.evaluation_strategy == "no":
+                priv_trainer = Trainer(
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                    data_collator=self.priv_data_collator,
+                    train_dataset=self.priv_train_set,
+                    args=priv_data_training_args,
+                    model_init=self.model_init if not i else None,
+                    compute_metrics=self.compute_metrics,
+                    callbacks=self.callbacks,
+                    optimizers=(self.priv_optimizer, self.priv_scheduler),
+                    preprocess_logits_for_metrics=self.preprocess_logits_for_metrics
+                )
+            else:
+                priv_trainer = Trainer(
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                    data_collator=self.priv_data_collator,
+                    train_dataset=self.priv_train_set,
+                    eval_dataset=self.val_set,
+                    args=priv_data_training_args,
+                    model_init=self.model_init if not i else None,
+                    compute_metrics=self.compute_metrics,
+                    callbacks=self.callbacks,
+                    optimizers=(self.priv_optimizer, self.priv_scheduler),
+                    preprocess_logits_for_metrics=self.preprocess_logits_for_metrics
+                )
 
             logger.info(f"begin {i}-th private data training process")
             priv_trainer.train()
