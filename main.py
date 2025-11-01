@@ -101,7 +101,7 @@ def train_llm(ctx, pub_data_dir):
     with open(slm_to_llm_vocab_mapping_path, "r") as fin:
         vocab_mapping = json.loads(fin.read())
 
-    slm_tokenizers = get_tokenizer(slm_pretrained_path)
+    slm_tokenizers = [get_tokenizer(slm_pretrained_path)] * 2
     tokenizer = get_tokenizer(llm_pretrained_path)
 
     trainer = FedMKTLLM(
