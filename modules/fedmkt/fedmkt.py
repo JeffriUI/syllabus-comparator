@@ -380,7 +380,7 @@ class FedMKTLLM(FedMKTBase):
         save_trainable_weights_only: bool = False,
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
         slm_tokenizers: List = None,
-        slm_to_llm_vocab_mappings: List[Dict] = None,
+        slm_to_llm_vocab_mappings: Dict = None,
     ):
         super(FedMKTLLM, self).__init__()
         self.ctx = ctx
@@ -473,7 +473,7 @@ class FedMKTLLM(FedMKTBase):
                 blending_model_logits_dataset=slm_pub_logits,
                 base_tokenizer=self.tokenizer,
                 blending_tokenizer=self.slm_tokenizers[idx],
-                blending_to_base_mapping=self.slm_to_llm_vocab_mappings[idx],
+                blending_to_base_mapping=self.slm_to_llm_vocab_mappings,
                 blending_model_index=idx,
                 skip_align=self.training_args.skip_align,
                 align_strategy=self.training_args.token_align_strategy
