@@ -16,7 +16,7 @@ from transformers import PreTrainedTokenizer
 from transformers.trainer_utils import EvalPrediction
 from transformers.modeling_utils import PreTrainedModel
 from transformers.modeling_utils import unwrap_model
-from fate_llm.algo.fedmkt.token_alignment.token_align import token_align
+from modules.fedmkt.token_alignment.token_align import token_align
 from modules.fedmkt.utils.generate_logit_utils import generate_pub_data_logits
 from fate.ml.aggregator import AggregatorClientWrapper, AggregatorServerWrapper
 from modules.fedmkt.fedmkt_trainer import FedMKTTrainer
