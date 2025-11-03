@@ -23,7 +23,7 @@ import editdistance
 import numpy as np
 
 from typing import Dict, List
-from fate_llm.algo.fedmkt.token_alignment.spectal_token_mapping import TOKENIZER_TO_SPECIAL_TOKEN
+from modules.fedmkt.token_alignment.special_token_mapping import TOKENIZER_TO_SPECIAL_TOKEN
 from fate_llm.algo.fedmkt.utils.vars_define import (
     PER_STEP_LOGITS,
     PER_STEP_INDICES,
