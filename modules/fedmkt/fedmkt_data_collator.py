@@ -53,7 +53,9 @@ class DataCollatorForFedMKT(DataCollatorWithPadding):
                 for feature in features:
                     extra_features[f_key].append(feature.pop(f_key))
 
-        features = super().__call__(features=features, return_tensors=return_tensors)
+        # DataCollatorWithPadding uses different arguments than DataCollatorForSeq2Seq
+        # features = super().__call__(features=features, return_tensors=return_tensors)
+        features = super().__call__(features=features)
 
         features.update(extra_features)
 
