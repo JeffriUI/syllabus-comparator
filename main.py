@@ -91,6 +91,7 @@ def train_llm(ctx, pub_data_dir):
         post_fedavg=True,
         evaluation_strategy="epoch",
         top_k_logits_keep=1,
+        skip_align=True,
     )
 
     fed_args = FedAVGArguments(
@@ -166,6 +167,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         post_fedavg=True,
         evaluation_strategy="epoch",
         top_k_logits_keep=1,
+        skip_align=True,
     )
 
     fed_args = FedAVGArguments(
