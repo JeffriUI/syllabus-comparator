@@ -21,15 +21,16 @@ logger = logging.getLogger(__name__)
 class DataCollatorForFedMKT(DataCollatorWithPadding):
     """modified from https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/data_collator.py#L135"""
     tokenizer: PreTrainedTokenizerBase
-    model: Optional[Any] = None
+    # model: Optional[Any] = None
     padding: Union[bool, str, PaddingStrategy] = True
     max_length: Optional[int] = None
     pad_to_multiple_of: Optional[int] = None
-    label_pad_token_id: int = -100
+    # label_pad_token_id: int = -100
     return_tensors: str = "pt"
     blending_num: int = 1
     distill_temperature: float = 1.0
-    vocab_size: int = None
+    # vocab_size: int = None
+    num_labels: int = 2
     dtype: torch.dtype = torch.bfloat16
 
     def __init__(self, *args, **kwargs):
@@ -60,34 +61,47 @@ class DataCollatorForFedMKT(DataCollatorWithPadding):
         features.update(extra_features)
 
         batch_size = features["input_ids"].size(0)
-        base_target_dist = torch.zeros(batch_size, self.max_length, self.vocab_size).to(self.dtype)
-        aligned_target_dists = [torch.zeros(batch_size, self.max_length, self.vocab_size).to(self.dtype)
+        base_target_dist = torch.zeros(batch_size, self.num_labels).to(self.dtype)
+        aligned_target_dists = [torch.zeros(batch_size, self.num_labels).to(self.dtype)
                                 for _ in range(self.blending_num)]
 
         for i in range(batch_size):
-            base_seq_len = len(features[PER_STEP_LOGITS][i])
-            for j in range(self.max_length):
-                if j < base_seq_len:
-                    base_logits = torch.tensor(features[PER_STEP_LOGITS][i][j], dtype=self.dtype)
-                    base_prob = softmax(base_logits / self.distill_temperature, -1)
-                    base_indices = torch.tensor(features[PER_STEP_INDICES][i][j])
-                    base_target_dist[i][j] = base_target_dist[i][j].scatter_(-1, base_indices, base_prob)
+            # base_seq_len = len(features[PER_STEP_LOGITS][i])
+            # for j in range(self.max_length):
+            #     if j < base_seq_len:
+            #         base_logits = torch.tensor(features[PER_STEP_LOGITS][i][j], dtype=self.dtype)
+            #         base_prob = softmax(base_logits / self.distill_temperature, -1)
+            #         base_indices = torch.tensor(features[PER_STEP_INDICES][i][j])
+            #         base_target_dist[i][j] = base_target_dist[i][j].scatter_(-1, base_indices, base_prob)
 
-                    for k in range(self.blending_num):
-                        per_step_aligned_indices_key = f"{ALIGNED_OTHER_INDICES}_{k}"
-                        per_step_aligned_logits_key = f"{ALIGNED_OTHER_LOGITS}_{k}"
-                        if len(features[per_step_aligned_indices_key][i][j]) > 0:
-                            aligned_logits = torch.tensor(features[per_step_aligned_logits_key][i][j], dtype=self.dtype)
-                            aligned_prob = softmax(aligned_logits / self.distill_temperature, -1)
-                            aligned_indices = torch.tensor(features[per_step_aligned_indices_key][i][j])
-                            aligned_target_dists[k][i][j] = aligned_target_dists[k][i][j].scatter_(-1, aligned_indices, aligned_prob)
-                        else:
-                            aligned_target_dists[k][i][j] = base_target_dist[i][j]
+            #         for k in range(self.blending_num):
+            #             per_step_aligned_indices_key = f"{ALIGNED_OTHER_INDICES}_{k}"
+            #             per_step_aligned_logits_key = f"{ALIGNED_OTHER_LOGITS}_{k}"
+            #             if len(features[per_step_aligned_indices_key][i][j]) > 0:
+            #                 aligned_logits = torch.tensor(features[per_step_aligned_logits_key][i][j], dtype=self.dtype)
+            #                 aligned_prob = softmax(aligned_logits / self.distill_temperature, -1)
+            #                 aligned_indices = torch.tensor(features[per_step_aligned_indices_key][i][j])
+            #                 aligned_target_dists[k][i][j] = aligned_target_dists[k][i][j].scatter_(-1, aligned_indices, aligned_prob)
+            #             else:
+            #                 aligned_target_dists[k][i][j] = base_target_dist[i][j]
 
-                else:  # padding position
-                    base_target_dist[i][j][self.pad_id] = 1.0
-                    for k in range(self.blending_num):
-                        aligned_target_dists[k][i][j][self.pad_id] = 1.0
+            #     else:  # padding position
+            #         base_target_dist[i][j][self.pad_id] = 1.0
+            #         for k in range(self.blending_num):
+            #             aligned_target_dists[k][i][j][self.pad_id] = 1.0
+            
+            base_logits = torch.tensor(features[PER_STEP_LOGITS], dtype=self.dtype)
+            base_prob = softmax(base_logits / self.distill_temperature, -1)
+            base_indices = torch.tensor(features[PER_STEP_INDICES])
+            base_target_dist = base_target_dist.scatter_(-1, base_indices, base_prob)
+            
+            for k in range(self.blending_num):
+                per_step_aligned_indices_key = f"{ALIGNED_OTHER_INDICES}_{k}"
+                per_step_aligned_logits_key = f"{ALIGNED_OTHER_LOGITS}_{k}"
+                aligned_logits = torch.tensor(features[per_step_aligned_logits_key], dtype=self.dtype)
+                aligned_prob = softmax(aligned_logits / self.distill_temperature, -1)
+                aligned_indices = torch.tensor(features[per_step_aligned_indices_key])
+                aligned_target_dists[k] = aligned_target_dists[k].scatter_(-1, aligned_indices, aligned_prob)
 
         features.pop(PER_STEP_LOGITS)
         features.pop(PER_STEP_INDICES)
