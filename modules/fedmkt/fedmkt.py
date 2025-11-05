@@ -324,7 +324,8 @@ class FedMKTSLM(FedMKTBase):
                 padding="max_length",
                 max_length=max(len(d["input_ids"]) for d in train_set),
                 blending_num=1,
-                vocab_size=self.training_args.vocab_size,
+                # vocab_size=self.training_args.vocab_size,
+                num_labels = self.model.config.num_labels,
                 dtype=next(self.model.parameters()).dtype,
                 distill_temperature=self.training_args.distill_temperature
             ),
@@ -535,7 +536,8 @@ class FedMKTLLM(FedMKTBase):
                         padding="max_length",
                         max_length=max(len(d["input_ids"]) for d in aligend_train_set),
                         blending_num=len(self.slm_tokenizers),
-                        vocab_size=self.training_args.vocab_size,
+                        # vocab_size=self.training_args.vocab_size,
+                        num_labels = self.model.config.num_labels,
                         dtype=next(self.model.parameters()).dtype,
                         distill_temperature=self.training_args.distill_temperature
                     ),

@@ -35,12 +35,14 @@ class DataCollatorForFedMKT(DataCollatorWithPadding):
 
     def __init__(self, *args, **kwargs):
         blending_num = kwargs.pop("blending_num", 4)
-        vocab_size = kwargs.pop("vocab_size", None)
+        # vocab_size = kwargs.pop("vocab_size", None)
+        num_labels = kwargs.pop("num_labels", 2)
         dtype = kwargs.pop("dtype", torch.dtype)
         distill_temperature = kwargs.pop("distill_temperature", 1.0)
         super(DataCollatorForFedMKT, self).__init__(*args, **kwargs)
         self.blending_num = blending_num
-        self.vocab_size = vocab_size if vocab_size is not None else len(self.tokenizer.get_vocab())
+        # self.vocab_size = vocab_size if vocab_size is not None else len(self.tokenizer.get_vocab())
+        self.num_labels = num_labels
         self.pad_id = self.tokenizer.pad_token_id
         self.dtype = dtype
         self.distill_temperature = distill_temperature
