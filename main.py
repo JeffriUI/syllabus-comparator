@@ -90,7 +90,7 @@ def train_llm(ctx, pub_data_dir):
         vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
         post_fedavg=True,
         evaluation_strategy="epoch",
-        top_k_logits_keep=1,
+        top_k_logits_keep=model.config.num_labels,
         skip_align=True,
     )
 
@@ -166,7 +166,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         vocab_size=AutoConfig.from_pretrained(slm_pretrained_path).vocab_size,
         post_fedavg=True,
         evaluation_strategy="epoch",
-        top_k_logits_keep=1,
+        top_k_logits_keep=model.config.num_labels,
         skip_align=True,
     )
 
