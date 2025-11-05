@@ -92,18 +92,18 @@ class DataCollatorForFedMKT(DataCollatorWithPadding):
             #         for k in range(self.blending_num):
             #             aligned_target_dists[k][i][j][self.pad_id] = 1.0
             
-            base_logits = torch.tensor(features[PER_STEP_LOGITS], dtype=self.dtype)
+            base_logits = torch.tensor(features[PER_STEP_LOGITS][i], dtype=self.dtype)
             base_prob = softmax(base_logits / self.distill_temperature, -1)
-            base_indices = torch.tensor(features[PER_STEP_INDICES])
-            base_target_dist = base_target_dist.scatter_(-1, base_indices, base_prob)
+            base_indices = torch.tensor(features[PER_STEP_INDICES][i])
+            base_target_dist[i] = base_target_dist[i].scatter_(-1, base_indices, base_prob)
             
             for k in range(self.blending_num):
                 per_step_aligned_indices_key = f"{ALIGNED_OTHER_INDICES}_{k}"
                 per_step_aligned_logits_key = f"{ALIGNED_OTHER_LOGITS}_{k}"
-                aligned_logits = torch.tensor(features[per_step_aligned_logits_key], dtype=self.dtype)
+                aligned_logits = torch.tensor(features[per_step_aligned_logits_key][i], dtype=self.dtype)
                 aligned_prob = softmax(aligned_logits / self.distill_temperature, -1)
-                aligned_indices = torch.tensor(features[per_step_aligned_indices_key])
-                aligned_target_dists[k] = aligned_target_dists[k].scatter_(-1, aligned_indices, aligned_prob)
+                aligned_indices = torch.tensor(features[per_step_aligned_indices_key][i])
+                aligned_target_dists[k][i] = aligned_target_dists[k][i].scatter_(-1, aligned_indices, aligned_prob)
 
         features.pop(PER_STEP_LOGITS)
         features.pop(PER_STEP_INDICES)
