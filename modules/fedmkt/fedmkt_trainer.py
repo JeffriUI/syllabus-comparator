@@ -74,7 +74,7 @@ class FedMKTTrainer(Trainer):
         if loss.numel() != 1:
             loss = loss.sum()
 
-        batch_size, seq_len, vocab_size = outputs["logits"].size(0), outputs["logits"].size(1), outputs["logits"].size(2)
+        batch_size, num_labels = outputs["logits"].size(0), outputs["logits"].size(1)
 
         aligned_rewards = []
         for i in range(self.blending_num):
@@ -118,8 +118,8 @@ class FedMKTTrainer(Trainer):
 
         if self.distill_loss_type == "ce":
             loss_lm = cross_entropy(
-                input=outputs["logits"].view(-1, vocab_size),
-                target=target_dist.view(-1, vocab_size),
+                input=outputs["logits"].view(-1, num_labels),
+                target=target_dist.view(-1, num_labels),
                 reduction="none",
             ).view(batch_size, -1)
         elif self.distill_loss_type == "kl":
