@@ -74,7 +74,10 @@ class FedMKTTrainer(Trainer):
         if loss.numel() != 1:
             loss = loss.sum()
 
-        batch_size, num_labels = outputs["logits"].size(0), outputs["logits"].size(1)
+        if isinstance(outputs, dict):
+            batch_size, num_labels = outputs["logits"].size(0), outputs["logits"].size(1)
+        else:
+            batch_size, num_labels = outputs[1].size(0), outputs[1].size(1)
 
         aligned_rewards = []
         for i in range(self.blending_num):
