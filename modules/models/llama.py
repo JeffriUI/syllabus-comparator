@@ -1,7 +1,7 @@
-from fate_llm.model_zoo.pellm.parameter_efficient_llm import PELLM
+from modules.models.parameter_efficient_llm import PELLM
 from transformers import AutoConfig, LlamaConfig, LlamaForSequenceClassification
 
-class ClassLLaMa(PELLM):
+class LLaMa(PELLM):
     """
     Custom class for LLaMa family models, refitted from FATE-LLM builtin models, 
     customized for Sequence Classification task rather than CausalLM

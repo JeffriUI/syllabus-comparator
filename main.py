@@ -12,14 +12,14 @@ from fate.arch import Context
 from fate.arch.launchers.multiprocess_launcher import launch
 from fate.ml.nn.homo.fedavg import FedAVGArguments
 from fate_llm.data.tokenizers.cust_tokenizer import get_tokenizer
-from fate_llm.model_zoo.pellm.roberta import Roberta
 from peft import LoraConfig, TaskType
 from transformers import AutoConfig, DataCollatorWithPadding, RobertaForSequenceClassification
 from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc, ConfusionMatrixDisplay
 
 # Local modules for adapted classes and functions
 from modules.datasets.class_dataset import ClassDataset
-from modules.models.class_llama import ClassLLaMa
+from modules.models.llama import LLaMa
+from modules.models.roberta import Roberta
 from modules.fedmkt.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
 from modules.fedmkt.token_alignment.vocab_mapping import get_vocab_mappings
 
@@ -63,7 +63,7 @@ def train_llm(ctx, pub_data_dir):
     pub_data_val = ClassDataset(llm_pretrained_path)
     pub_data_val.load(pub_data_dir, split="validation")
 
-    model = ClassLLaMa(
+    model = LLaMa(
         pretrained_path=llm_pretrained_path,
         peft_type="LoraConfig",
         peft_config=lora_config.to_dict(),
