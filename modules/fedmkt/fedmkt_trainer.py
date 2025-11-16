@@ -69,11 +69,6 @@ class FedMKTTrainer(Trainer):
             # We don't use .loss here since the model may return tuples instead of ModelOutput.
             loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
 
-        # Custom logic to fix issues with non-scalar loss output being incompatible with autograd
-        # with non-scalar output most likely due to parallel processing outputting partial loss on each GPU
-        if loss.numel() != 1:
-            loss = loss.sum()
-
         if isinstance(outputs, dict):
             batch_size, num_labels = outputs["logits"].size(0), outputs["logits"].size(1)
         else:
@@ -86,9 +81,9 @@ class FedMKTTrainer(Trainer):
         base_reward = (1 / torch.exp(torch.tensor(base_metric, dtype=torch.bfloat16))).to(loss.device)
 
         if self.distill_strategy == "greater":
-            base_reward_expanded = base_reward.unsqueeze(-1).unsqueeze(-1).expand_as(base_target_dist)
+            base_reward_expanded = base_reward.unsqueeze(-1).expand_as(base_target_dist)
             aligned_rewards_expanded = [
-                aligned_rewards[i].unsqueeze(-1).unsqueeze(-1).expand_as(aligned_target_dists[i])
+                aligned_rewards[i].unsqueeze(-1).expand_as(aligned_target_dists[i])
                 for i in range(self.blending_num)
             ]
             target_dist_list = []
@@ -109,9 +104,9 @@ class FedMKTTrainer(Trainer):
                 [base_reward] + aligned_rewards, dim=1
             )
             normalized_weights = torch.softmax(weights, dim=1)
-            weight_labels = normalized_weights[:, 0].unsqueeze(1).unsqueeze(2) * base_target_dist
+            weight_labels = normalized_weights[:, 0].unsqueeze(1) * base_target_dist
             for i in range(self.blending_num):
-                weight_labels += normalized_weights[:, i + 1].unsqueeze(1).unsqueeze(2) * aligned_target_dists[i]
+                weight_labels += normalized_weights[:, i + 1].unsqueeze(1) * aligned_target_dists[i]
 
             target_dist = (
                 weight_labels
