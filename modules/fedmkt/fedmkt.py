@@ -21,7 +21,7 @@ from modules.fedmkt.utils.generate_logit_utils import generate_pub_data_logits
 from fate.ml.aggregator import AggregatorClientWrapper, AggregatorServerWrapper
 from modules.fedmkt.fedmkt_trainer import FedMKTTrainer
 from modules.fedmkt.fedmkt_data_collator import DataCollatorForFedMKT
-from fate_llm.algo.fedmkt.utils.dataset_sync_util import sync_dataset
+from modules.fedmkt.utils.dataset_sync_util import sync_dataset
 
 
 logger = logging.getLogger(__name__)

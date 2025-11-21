@@ -100,11 +100,6 @@ class Trainer(_hf_Trainer):
             # We don't use .loss here since the model may return tuples instead of ModelOutput.
             loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
 
-        # Custom logic to fix issues with non-scalar loss output being incompatible with autograd
-        # with non-scalar output most likely due to parallel processing outputting partial loss on each GPU
-        if loss.numel() != 1:
-            loss = loss.sum()
-
         return (loss, outputs) if return_outputs else loss
 
 class HomoTrainerClient(Trainer, HomoTrainerMixin):
