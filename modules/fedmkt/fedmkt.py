@@ -436,6 +436,9 @@ class FedMKTLLM(FedMKTBase):
         if previous_pub_dataset is None:
             if self.training_args.world_size <= 1 or self.training_args.local_rank == 0:
                 llm_pub_logits = self.generate_pub_data_logits(first_epoch=True if not epoch_idx else False)
+                iter_ctx.guest.put("llm_pub_logits", llm_pub_logits.to_dict())
+                if len(self.slm_tokenizers) > 1:
+                    iter_ctx.hosts.put("llm_pub_logits", llm_pub_logits.to_dict())
                 if self.training_args.world_size > 1:
                     sync_dataset(llm_pub_logits, self.training_args.local_rank,
                                  self.training_args.world_size, self.training_args.device)
