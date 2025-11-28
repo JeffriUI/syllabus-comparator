@@ -17,7 +17,7 @@ from transformers import AutoConfig, DataCollatorWithPadding, RobertaForSequence
 from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc, ConfusionMatrixDisplay
 
 # Local modules for adapted classes and functions
-from modules.datasets.class_dataset import ClassDataset
+from modules.datasets.class_dataset import SeqClsDataset
 from modules.models.llama import LLaMa
 from modules.models.roberta import Roberta
 from modules.fedmkt.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
@@ -29,7 +29,7 @@ slm_pretrained_path = "FacebookAI/roberta-large"
 slm_to_llm_vocab_mapping_path = "vocab_mappings/roberta_to_llama.json"
 llm_to_slm_vocab_mapping_path = "vocab_mappings/llama_to_roberta.json"
 
-global_epochs = 5
+global_epochs = 3
 batch_size = 4
 llm_lr = 3e-5
 slm_lr = 3e-5
@@ -58,10 +58,10 @@ def train_llm(ctx, pub_data_dir):
         target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj']
     )
     
-    pub_data_train = ClassDataset(llm_pretrained_path)
+    pub_data_train = SeqClsDataset(llm_pretrained_path)
     pub_data_train.load(pub_data_dir, split="train")
-    pub_data_val = ClassDataset(llm_pretrained_path)
-    pub_data_val.load(pub_data_dir, split="validation")
+    # pub_data_val = SeqClsDataset(llm_pretrained_path)
+    # pub_data_val.load(pub_data_dir, split="validation")
 
     model = LLaMa(
         pretrained_path=llm_pretrained_path,
@@ -89,14 +89,14 @@ def train_llm(ctx, pub_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
         post_fedavg=True,
-        evaluation_strategy="epoch",
+        # evaluation_strategy="epoch",
         top_k_logits_keep=model.config.num_labels,
         skip_align=True,
     )
 
     fed_args = FedAVGArguments(
         aggregate_strategy='epoch',
-        aggregate_freq=1
+        aggregate_freq=global_epochs
     )
 
     with open(slm_to_llm_vocab_mapping_path, "r") as fin:
@@ -111,7 +111,7 @@ def train_llm(ctx, pub_data_dir):
         training_args=training_args,
         fed_args=fed_args,
         train_set=pub_data_train.ds,
-        val_set=pub_data_val.ds,
+        # val_set=pub_data_val.ds,
         tokenizer=tokenizer,
         slm_tokenizers=slm_tokenizers,
         slm_to_llm_vocab_mappings=vocab_mapping,
@@ -135,14 +135,14 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         torch_dtype="bfloat16"
     )
     
-    pub_data_train = ClassDataset(llm_pretrained_path)
+    pub_data_train = SeqClsDataset(llm_pretrained_path)
     pub_data_train.load(pub_data_dir, split="train")
     
-    priv_data_train = ClassDataset(slm_pretrained_path)
+    priv_data_train = SeqClsDataset(slm_pretrained_path)
     priv_data_train.load(priv_data_dir, split="train")
     
-    priv_data_val = ClassDataset(slm_pretrained_path)
-    priv_data_val.load(priv_data_dir, split="validation")
+    # priv_data_val = SeqClsDataset(slm_pretrained_path)
+    # priv_data_val.load(priv_data_dir, split="validation")
     
     slm_index = int(priv_data_dir[-1]) - 1
 
@@ -165,14 +165,14 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(slm_pretrained_path).vocab_size,
         post_fedavg=True,
-        evaluation_strategy="epoch",
+        # evaluation_strategy="epoch",
         top_k_logits_keep=model.config.num_labels,
         skip_align=True,
     )
 
     fed_args = FedAVGArguments(
         aggregate_strategy='epoch',
-        aggregate_freq=1
+        aggregate_freq=global_epochs
     )
 
     with open(llm_to_slm_vocab_mapping_path, "r") as fin:
@@ -188,7 +188,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         fed_args=fed_args,
         pub_train_set=pub_data_train.ds,
         priv_train_set=priv_data_train.ds,
-        val_set=priv_data_val.ds,
+        # val_set=priv_data_val.ds,
         tokenizer=tokenizer,
         save_trainable_weights_only=True,
         llm_tokenizer=llm_tokenizer,
@@ -216,10 +216,10 @@ def train_direct(data_dir):
         torch_dtype="bfloat16"
     )
     
-    data_train = ClassDataset(slm_pretrained_path)
+    data_train = SeqClsDataset(slm_pretrained_path)
     data_train.load(data_dir, split="train")
-    data_val = ClassDataset(slm_pretrained_path)
-    data_val.load(data_dir, split="validation")
+    # data_val = SeqClsDataset(slm_pretrained_path)
+    # data_val.load(data_dir, split="validation")
     
     training_args = TrainingArguments(
         per_device_train_batch_size=1,
@@ -237,7 +237,7 @@ def train_direct(data_dir):
         weight_decay=0.1,
         max_grad_norm=1.0,
         use_cpu=False,
-        evaluation_strategy="epoch",
+        # evaluation_strategy="epoch",
     )
 
     tokenizer = get_tokenizer(slm_pretrained_path)
@@ -247,7 +247,7 @@ def train_direct(data_dir):
         tokenizer=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
         train_dataset=data_train.ds,
-        eval_dataset=data_val.ds,
+        # eval_dataset=data_val.ds,
         args=training_args,
     )
 
@@ -268,7 +268,7 @@ def test(data_dir, model_dir):
     f1_scores = {}
     conf_matrix = {}
     
-    test_data = ClassDataset(slm_pretrained_path)
+    test_data = SeqClsDataset(slm_pretrained_path)
     test_data.load(data_dir, split="test")
     
     y_true = test_data.ds['labels'].to_list()
@@ -313,7 +313,7 @@ def test(data_dir, model_dir):
 
 def run(ctx: Context):
     # Command line to build vocab mappings
-    # Or, run build_vocab_mappings.py separately to save time
+    # Doesn't need to be run if build_vocab_mappings.py was run separately
     # build_vocab_mappings()
     
     pub_data_dir = f'{dataset_directory}/public'
@@ -329,13 +329,6 @@ def run(ctx: Context):
     else:
         if ctx.local.party[1] == "9999":
             os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-        #     slm_idx = 1
-        # elif ctx.local.party[1] == "10000":
-        #     os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-        #     slm_idx = 2
-        # elif ctx.local.party[1] == "10001":
-        #     os.environ["CUDA_VISIBLE_DEVICES"] = "4"
-        #     slm_idx = 3
         else:
             raise ValueError(f"party_id={ctx.local.party[1]} is illegal")
 

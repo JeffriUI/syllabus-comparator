@@ -1,4 +1,4 @@
-from transformers import TrainingArguments as _hf_TrainingArguments, Trainer
+from transformers import TrainingArguments as _hf_TrainingArguments
 from dataclasses import dataclass, field
 from typing import Optional
 from fate.ml.nn.trainer.trainer_base import HomoTrainerMixin, FedArguments, get_ith_checkpoint
@@ -12,7 +12,7 @@ from fate.arch import Context
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from transformers import PreTrainedTokenizer
-from transformers import Trainer as _hf_Trainer, EvalPrediction
+from transformers import Trainer, EvalPrediction
 from transformers.trainer_utils import has_length
 from torch.utils.data import _utils
 from transformers.trainer_callback import TrainerCallback
@@ -68,39 +68,6 @@ class TrainingArguments(_TrainingArguments):
         # Filter out args that are equal to their default values
         set_args = {name: value for name, value in all_args.items() if value != default_args.get(name)}
         return set_args
-
-class Trainer(_hf_Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        if self.label_smoother is not None and "labels" in inputs:
-            labels = inputs.pop("labels")
-        else:
-            labels = None
-        outputs = model(**inputs)
-        # Save past state if it exists
-        # TODO: this needs to be fixed and made cleaner later.
-        if self.args.past_index >= 0:
-            self._past = outputs[self.args.past_index]
-
-        if labels is not None:
-            unwrapped_model = unwrap_model(model)
-            if _hf_Trainer._is_peft_model(unwrapped_model):
-                model_name = unwrapped_model.base_model.model._get_name()
-            else:
-                model_name = unwrapped_model._get_name()
-            if model_name in _hf_Trainer.MODEL_FOR_CAUSAL_LM_MAPPING_NAMES.values():
-                loss = self.label_smoother(outputs, labels, shift_labels=True)
-            else:
-                loss = self.label_smoother(outputs, labels)
-        else:
-            if isinstance(outputs, dict) and "loss" not in outputs:
-                raise ValueError(
-                    "The model did not return a loss from the inputs, only the following keys: "
-                    f"{','.join(outputs.keys())}. For reference, the inputs it received are {','.join(inputs.keys())}."
-                )
-            # We don't use .loss here since the model may return tuples instead of ModelOutput.
-            loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
-
-        return (loss, outputs) if return_outputs else loss
 
 class HomoTrainerClient(Trainer, HomoTrainerMixin):
 

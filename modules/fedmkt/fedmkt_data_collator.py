@@ -3,7 +3,7 @@ from torch.nn.functional import softmax
 from transformers import DataCollatorWithPadding
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 from transformers.utils import PaddingStrategy
-from typing import Optional, Any, Union
+from typing import Optional, Union
 import logging
 from fate_llm.algo.fedmkt.utils.vars_define import (
     ALIGNED_OTHER_LOGITS,
@@ -21,27 +21,22 @@ logger = logging.getLogger(__name__)
 class DataCollatorForFedMKT(DataCollatorWithPadding):
     """modified from https://github.com/fanqiwan/FuseAI/blob/main/FuseLLM/src/utils/data_collator.py#L135"""
     tokenizer: PreTrainedTokenizerBase
-    # model: Optional[Any] = None
     padding: Union[bool, str, PaddingStrategy] = True
     max_length: Optional[int] = None
     pad_to_multiple_of: Optional[int] = None
-    # label_pad_token_id: int = -100
     return_tensors: str = "pt"
     blending_num: int = 1
     distill_temperature: float = 1.0
-    # vocab_size: int = None
     num_labels: int = 2
     dtype: torch.dtype = torch.bfloat16
 
     def __init__(self, *args, **kwargs):
         blending_num = kwargs.pop("blending_num", 4)
-        # vocab_size = kwargs.pop("vocab_size", None)
         num_labels = kwargs.pop("num_labels", 2)
         dtype = kwargs.pop("dtype", torch.dtype)
         distill_temperature = kwargs.pop("distill_temperature", 1.0)
         super(DataCollatorForFedMKT, self).__init__(*args, **kwargs)
         self.blending_num = blending_num
-        # self.vocab_size = vocab_size if vocab_size is not None else len(self.tokenizer.get_vocab())
         self.num_labels = num_labels
         self.pad_id = self.tokenizer.pad_token_id
         self.dtype = dtype
@@ -68,30 +63,6 @@ class DataCollatorForFedMKT(DataCollatorWithPadding):
                                 for _ in range(self.blending_num)]
 
         for i in range(batch_size):
-            # base_seq_len = len(features[PER_STEP_LOGITS][i])
-            # for j in range(self.max_length):
-            #     if j < base_seq_len:
-            #         base_logits = torch.tensor(features[PER_STEP_LOGITS][i][j], dtype=self.dtype)
-            #         base_prob = softmax(base_logits / self.distill_temperature, -1)
-            #         base_indices = torch.tensor(features[PER_STEP_INDICES][i][j])
-            #         base_target_dist[i][j] = base_target_dist[i][j].scatter_(-1, base_indices, base_prob)
-
-            #         for k in range(self.blending_num):
-            #             per_step_aligned_indices_key = f"{ALIGNED_OTHER_INDICES}_{k}"
-            #             per_step_aligned_logits_key = f"{ALIGNED_OTHER_LOGITS}_{k}"
-            #             if len(features[per_step_aligned_indices_key][i][j]) > 0:
-            #                 aligned_logits = torch.tensor(features[per_step_aligned_logits_key][i][j], dtype=self.dtype)
-            #                 aligned_prob = softmax(aligned_logits / self.distill_temperature, -1)
-            #                 aligned_indices = torch.tensor(features[per_step_aligned_indices_key][i][j])
-            #                 aligned_target_dists[k][i][j] = aligned_target_dists[k][i][j].scatter_(-1, aligned_indices, aligned_prob)
-            #             else:
-            #                 aligned_target_dists[k][i][j] = base_target_dist[i][j]
-
-            #     else:  # padding position
-            #         base_target_dist[i][j][self.pad_id] = 1.0
-            #         for k in range(self.blending_num):
-            #             aligned_target_dists[k][i][j][self.pad_id] = 1.0
-            
             base_logits = torch.tensor(features[PER_STEP_LOGITS][i], dtype=self.dtype)
             base_prob = softmax(base_logits / self.distill_temperature, -1)
             base_indices = torch.tensor(features[PER_STEP_INDICES][i])

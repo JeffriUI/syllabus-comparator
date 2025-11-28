@@ -5,14 +5,14 @@ from dataclasses import dataclass, field
 
 import transformers
 
-from modules.trainer.trainer import Trainer, TrainingArguments
+from modules.trainer.trainer import TrainingArguments
 from typing import Dict, Optional, List, Callable, Union
 from fate.arch import Context
 from fate.ml.nn.trainer.trainer_base import FedArguments
 from torch.utils.data import Dataset
 from transformers.trainer_callback import TrainerCallback
 from transformers import PreTrainedTokenizer
-# from transformers import Trainer
+from transformers import Trainer
 from transformers.trainer_utils import EvalPrediction
 from transformers.modeling_utils import PreTrainedModel
 from transformers.modeling_utils import unwrap_model
@@ -447,6 +447,9 @@ class FedMKTLLM(FedMKTBase):
                                               self.training_args.world_size, self.training_args.device)
         else:
             llm_pub_logits = previous_pub_dataset
+            iter_ctx.guest.put("llm_pub_logits", llm_pub_logits.to_dict())
+            if len(self.slm_tokenizers) > 1:
+                iter_ctx.hosts.put("llm_pub_logits", llm_pub_logits.to_dict())
 
         slm_pub_logits_list = list()
         if self.training_args.world_size <= 1 or self.training_args.local_rank == 0:

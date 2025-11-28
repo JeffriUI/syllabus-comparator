@@ -9,7 +9,7 @@ from nltk.corpus import stopwords
 from nltk import pos_tag
 from nltk.stem import WordNetLemmatizer
 
-class ClassDataset(Dataset):
+class SeqClsDataset(Dataset):
     """
     Custom dataset class, refitted from FATE-LLM built-in Dataset class for Sequence Classification
     """

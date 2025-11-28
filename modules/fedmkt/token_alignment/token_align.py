@@ -193,11 +193,6 @@ def align_blending_model_logits_with_base_model_logits(base_examples,
     per_step_logits_list, per_step_indices_list = [], []
     metric_ce_aligned = []
     for base_feature, blending_feature in zip(base_features, blending_features):
-        # Due to only picking 1 logit and index, these lines are unnecessary and creates error instead
-        # base_feature[PER_STEP_LOGITS] = base_feature[PER_STEP_LOGITS][:len(base_feature['input_ids'])]
-        # base_feature[PER_STEP_INDICES] = base_feature[PER_STEP_INDICES][:len(base_feature['input_ids'])]
-        # blending_feature[PER_STEP_LOGITS] = blending_feature[PER_STEP_LOGITS][:len(blending_feature['input_ids'])]
-        # blending_feature[PER_STEP_INDICES] = blending_feature[PER_STEP_INDICES][:len(blending_feature['input_ids'])]
         if skip_align is True:
             aligned_blending_model_per_step_logits = blending_feature[PER_STEP_LOGITS]
             aligned_blending_model_per_step_indices = blending_feature[PER_STEP_INDICES]
