@@ -249,6 +249,7 @@ def train_direct(data_dir):
         train_dataset=data_train.ds,
         # eval_dataset=data_val.ds,
         args=training_args,
+        save_trainable_weights_only=True
     )
 
     trainer.train()

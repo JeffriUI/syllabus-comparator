@@ -12,7 +12,7 @@ from fate.arch import Context
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from transformers import PreTrainedTokenizer
-from transformers import Trainer, EvalPrediction
+from transformers import Trainer as _hf_Trainer, EvalPrediction
 from transformers.trainer_utils import has_length
 from torch.utils.data import _utils
 from transformers.trainer_callback import TrainerCallback
@@ -69,6 +69,34 @@ class TrainingArguments(_TrainingArguments):
         set_args = {name: value for name, value in all_args.items() if value != default_args.get(name)}
         return set_args
 
+class Trainer(_hf_Trainer):
+    save_trainable_weights_only: bool =  False
+    
+    def __init__(self, save_trainable_weights_only, *args, **kwargs):
+        save_trainable_weights_only = kwargs.pop("save_trainable_weights_only", False)
+        super(Trainer, self).__init__(*args, **kwargs)
+        self.save_trainable_weights_only = save_trainable_weights_only
+
+    def save_model(
+        self,
+        output_dir: Optional[str] = None,
+        state_dict=None
+    ):
+        if not self.save_trainable_weights_only:
+            torch.save(self.model.state_dict(), output_dir + '/pytorch_model.bin')
+        else:
+            model = unwrap_model(self.model)
+
+            if hasattr(model, "save_trainable"):
+                model.save_trainable(output_dir)
+            else:
+                state_dict = {
+                    k: p.to("cpu") for k,
+                                       p in model.named_parameters() if p.requires_grad
+                }
+
+                torch.save(state_dict, output_dir + '/pytorch_model.bin')
+
 class HomoTrainerClient(Trainer, HomoTrainerMixin):
 
     def __init__(
@@ -116,7 +144,7 @@ class HomoTrainerClient(Trainer, HomoTrainerMixin):
                 checkpoint_folder = get_ith_checkpoint(checkpoint_path, self._args.checkpoint_idx)
                 self._args.resume_from_checkpoint = os.path.join(checkpoint_path, checkpoint_folder)
 
-        Trainer.__init__(
+        _hf_Trainer.__init__(
             self,
             model=model,
             args=self._args,
