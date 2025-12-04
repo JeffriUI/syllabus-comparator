@@ -18,16 +18,15 @@ from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc, Confusio
 
 # Local modules for adapted classes and functions
 from modules.datasets.class_dataset import SeqClsDataset
-from modules.models.llama import LLaMa
 from modules.models.roberta import Roberta
 from modules.fedmkt.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
 from modules.fedmkt.token_alignment.vocab_mapping import get_vocab_mappings
 
-llm_pretrained_path = "meta-llama/Llama-2-7b-hf"
-slm_pretrained_path = "FacebookAI/roberta-large"
+llm_pretrained_path = "FacebookAI/roberta-large"
+slm_pretrained_path = "FacebookAI/roberta-base"
 
-slm_to_llm_vocab_mapping_path = "vocab_mappings/roberta_to_llama.json"
-llm_to_slm_vocab_mapping_path = "vocab_mappings/llama_to_roberta.json"
+slm_to_llm_vocab_mapping_path = "vocab_mappings/roberta_small_to_roberta.json"
+llm_to_slm_vocab_mapping_path = "vocab_mappings/roberta_to_roberta_small.json"
 
 global_epochs = 3
 batch_size = 4
@@ -55,20 +54,20 @@ def train_llm(ctx, pub_data_dir):
     lora_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
         inference_mode=False, r=8, lora_alpha=32, lora_dropout=0.1,
-        target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj']
+        target_modules=["query", "value"]
+    )
+
+    model = Roberta(
+        pretrained_path=llm_pretrained_path,
+        peft_type="LoraConfig",
+        peft_config=lora_config.to_dict(),
+        torch_dtype="bfloat16"
     )
     
     pub_data_train = SeqClsDataset(llm_pretrained_path)
     pub_data_train.load(pub_data_dir, split="train")
     # pub_data_val = SeqClsDataset(llm_pretrained_path)
     # pub_data_val.load(pub_data_dir, split="validation")
-
-    model = LLaMa(
-        pretrained_path=llm_pretrained_path,
-        peft_type="LoraConfig",
-        peft_config=lora_config.to_dict(),
-        torch_dtype="bfloat16"
-    )
 
     training_args = FedMKTTrainingArguments(
         global_epochs=global_epochs,
@@ -200,8 +199,7 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
     trainer.save_model(slm_models_saved_directory[slm_index])
     
 def train_direct(data_dir):
-    from transformers import Trainer
-    from modules.trainer.trainer import TrainingArguments
+    from modules.trainer.trainer import TrainingArguments, Trainer
     
     lora_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
