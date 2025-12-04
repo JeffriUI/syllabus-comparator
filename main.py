@@ -208,7 +208,7 @@ def train_direct(data_dir):
     )
 
     model = Roberta(
-        pretrained_path=slm_pretrained_path,
+        pretrained_path=llm_pretrained_path,
         peft_type="LoraConfig",
         peft_config=lora_config.to_dict(),
         torch_dtype="bfloat16"
@@ -254,9 +254,21 @@ def train_direct(data_dir):
     trainer.save_model("models/direct")
 
 def test(data_dir, model_dir):
-    direct_model = RobertaForSequenceClassification.from_pretrained(f'{model_dir}/direct')
-    fed_1_model = RobertaForSequenceClassification.from_pretrained(f'{model_dir}/slm_1')
-    fed_2_model = RobertaForSequenceClassification.from_pretrained(f'{model_dir}/slm_2')
+    direct_model = RobertaForSequenceClassification.from_pretrained(
+        pretrained_model_name_or_path=f'{model_dir}/direct',
+        config=AutoConfig.from_pretrained(llm_pretrained_path),
+        torch_dtype="bfloat16"
+    )
+    fed_1_model = RobertaForSequenceClassification.from_pretrained(
+        pretrained_model_name_or_path=f'{model_dir}/slm_1',
+        config=AutoConfig.from_pretrained(slm_pretrained_path),
+        torch_dtype="bfloat16"
+    )
+    fed_2_model = RobertaForSequenceClassification.from_pretrained(
+        pretrained_model_name_or_path=f'{model_dir}/slm_2',
+        config=AutoConfig.from_pretrained(slm_pretrained_path),
+        torch_dtype="bfloat16"
+    )
     
     models = {
         'Direct': direct_model,
