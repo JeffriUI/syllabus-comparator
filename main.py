@@ -234,6 +234,7 @@ def train_direct(data_dir):
         adam_beta2=0.95,
         weight_decay=0.1,
         max_grad_norm=1.0,
+        num_train_epochs=global_epochs,
         use_cpu=False,
         # evaluation_strategy="epoch",
     )
@@ -254,21 +255,48 @@ def train_direct(data_dir):
     trainer.save_model("models/direct")
 
 def test(data_dir, model_dir):
-    direct_model = RobertaForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path=f'{model_dir}/direct',
-        config=AutoConfig.from_pretrained(llm_pretrained_path),
+    lora_config = LoraConfig(
+        task_type=TaskType.SEQ_CLS,
+        inference_mode=True, r=8, lora_alpha=32, lora_dropout=0.1,
+        target_modules=["query", "value"]
+    )
+
+    direct_model = Roberta(
+        pretrained_path=f'{model_dir}/direct',
+        peft_type="LoraConfig",
+        peft_config=lora_config.to_dict(),
         torch_dtype="bfloat16"
     )
-    fed_1_model = RobertaForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path=f'{model_dir}/slm_1',
-        config=AutoConfig.from_pretrained(slm_pretrained_path),
+    
+    fed_1_model = Roberta(
+        pretrained_path=f'{model_dir}/slm_1',
+        peft_type="LoraConfig",
+        peft_config=lora_config.to_dict(),
         torch_dtype="bfloat16"
     )
-    fed_2_model = RobertaForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path=f'{model_dir}/slm_2',
-        config=AutoConfig.from_pretrained(slm_pretrained_path),
+    
+    fed_2_model = Roberta(
+        pretrained_path=f'{model_dir}/slm_2',
+        peft_type="LoraConfig",
+        peft_config=lora_config.to_dict(),
         torch_dtype="bfloat16"
     )
+    
+    # direct_model = RobertaForSequenceClassification.from_pretrained(
+    #     pretrained_model_name_or_path=f'{model_dir}/direct',
+    #     config=AutoConfig.from_pretrained(llm_pretrained_path),
+    #     torch_dtype=getattr(torch, "bfloat16")
+    # )
+    # fed_1_model = RobertaForSequenceClassification.from_pretrained(
+    #     pretrained_model_name_or_path=f'{model_dir}/slm_1',
+    #     config=AutoConfig.from_pretrained(slm_pretrained_path),
+    #     torch_dtype=getattr(torch, "bfloat16")
+    # )
+    # fed_2_model = RobertaForSequenceClassification.from_pretrained(
+    #     pretrained_model_name_or_path=f'{model_dir}/slm_2',
+    #     config=AutoConfig.from_pretrained(slm_pretrained_path),
+    #     torch_dtype=getattr(torch, "bfloat16")
+    # )
     
     models = {
         'Direct': direct_model,

@@ -72,7 +72,7 @@ class TrainingArguments(_TrainingArguments):
 class Trainer(_hf_Trainer):
     save_trainable_weights_only: bool =  False
     
-    def __init__(self, save_trainable_weights_only, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         save_trainable_weights_only = kwargs.pop("save_trainable_weights_only", False)
         super(Trainer, self).__init__(*args, **kwargs)
         self.save_trainable_weights_only = save_trainable_weights_only
