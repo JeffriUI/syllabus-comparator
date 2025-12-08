@@ -292,7 +292,7 @@ def test(data_dir, model_dir):
         with torch.no_grad():
             logits = models[model](**inputs).logits
 
-        y_pred = logits.argmax(dim=1).tolist()
+        y_pred = logits.softmax(dim=-1).detach().cpu().flatten().numpy().argmax(dim=-1).tolist()
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
         conf_matrix[model] = confusion_matrix(y_true, y_pred)
         fpr, tpr, _ = roc_curve(y_true, y_pred)
