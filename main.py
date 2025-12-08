@@ -255,33 +255,6 @@ def train_direct(data_dir):
     trainer.save_model("models/direct")
 
 def test(data_dir, model_dir):
-    # lora_config = LoraConfig(
-    #     task_type=TaskType.SEQ_CLS,
-    #     inference_mode=True, r=8, lora_alpha=32, lora_dropout=0.1,
-    #     target_modules=["query", "value"]
-    # )
-
-    # direct_model = Roberta(
-    #     pretrained_path=f'{model_dir}/direct',
-    #     peft_type="LoraConfig",
-    #     peft_config=lora_config.to_dict(),
-    #     torch_dtype="bfloat16"
-    # )
-    
-    # fed_1_model = Roberta(
-    #     pretrained_path=f'{model_dir}/slm_1',
-    #     peft_type="LoraConfig",
-    #     peft_config=lora_config.to_dict(),
-    #     torch_dtype="bfloat16"
-    # )
-    
-    # fed_2_model = Roberta(
-    #     pretrained_path=f'{model_dir}/slm_2',
-    #     peft_type="LoraConfig",
-    #     peft_config=lora_config.to_dict(),
-    #     torch_dtype="bfloat16"
-    # )
-    
     direct_model = RobertaForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=f'{model_dir}/direct',
         config=AutoConfig.from_pretrained(llm_pretrained_path),
@@ -330,25 +303,19 @@ def test(data_dir, model_dir):
     plt.ylabel('True Positive Rate')
     plt.title('ROC Curves for Two Models')
     plt.legend()
-    plt.savefig("graphs/auc_roc_curve.png")
-    plt.show()
+    plt.savefig("./graphs/auc_roc_curve.png")
     
     # Visualize F1-scores distribution
     bars = plt.bar(f1_scores.keys(), f1_scores.values(), bottom=np.zeros(3))
     plt.title('F1-scores Distribution')
     plt.bar_label(bars, fmt='%.4f')
-    plt.savefig("graphs/f1_scores.png")
-    plt.show()
+    plt.savefig("./graphs/f1_scores.png")
     
     # Visualize Confusion Matrix
-    fig, axs = plt.subplots(1, 3)
-    for i, model in enumerate(models.keys()):
-        axs[i] = ConfusionMatrixDisplay(confusion_matrix=conf_matrix[model])
-        axs[i].plot(cmap=plt.cm.Blues)
-        axs[i].set_title(model + 'Model')
-    fig.suptitle('Confusion Matrix Across Models', va='bottom')
-    plt.savefig("graphs/confusion_matrix.png")
-    plt.show()
+    for model in models.keys():
+        cm_display = ConfusionMatrixDisplay(confusion_matrix=conf_matrix[model])
+        cm_display.plot(cmap=plt.cm.Blues)
+        plt.savefig(f"./graphs/confusion_matrix_{model}.png")
 
 def run(ctx: Context):
     # Command line to build vocab mappings
