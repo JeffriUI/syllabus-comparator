@@ -283,8 +283,10 @@ def test(data_dir, model_dir):
     test_data = SeqClsDataset(slm_pretrained_path)
     test_data.load(data_dir, split="test")
     
-    y_true = test_data.ds['labels'].to_list()
-    inputs = test_data.ds.remove_columns('labels')
+    y_true = test_data.ds['labels'].tolist()
+    inputs = test_data.ds.remove_columns('labels').data.to_pydict()
+    for key in inputs.keys():
+        inputs[key] = inputs[key].long()
 
     for model in models.keys():
         with torch.no_grad():
@@ -306,6 +308,7 @@ def test(data_dir, model_dir):
     plt.savefig("./graphs/auc_roc_curve.png")
     
     # Visualize F1-scores distribution
+    plt.plot()
     bars = plt.bar(f1_scores.keys(), f1_scores.values(), bottom=np.zeros(3))
     plt.title('F1-scores Distribution')
     plt.bar_label(bars, fmt='%.4f')
