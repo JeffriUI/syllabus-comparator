@@ -287,12 +287,16 @@ def test(data_dir, model_dir):
     inputs = test_data.ds.remove_columns('labels').data.to_pydict()
     for key in inputs.keys():
         inputs[key] = torch.LongTensor(inputs[key])
+    
+    def find_diff(value):
+        return abs(value - 0.5)
 
     for model in models.keys():
         with torch.no_grad():
             logits = models[model](**inputs).logits
 
-        y_pred = logits.softmax(dim=-1).detach().cpu().flatten().numpy().argmax(dim=-1).tolist()
+        probs = logits.to(torch.float16).softmax(dim=-1).detach()
+        y_pred = probs.apply_(find_diff).argmax(dim=-1).numpy().tolist()
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
         conf_matrix[model] = confusion_matrix(y_true, y_pred)
         fpr, tpr, _ = roc_curve(y_true, y_pred)
@@ -308,7 +312,7 @@ def test(data_dir, model_dir):
     plt.savefig("./graphs/auc_roc_curve.png")
     
     # Visualize F1-scores distribution
-    plt.plot()
+    plt.clf()
     bars = plt.bar(f1_scores.keys(), f1_scores.values(), bottom=np.zeros(3))
     plt.title('F1-scores Distribution')
     plt.bar_label(bars, fmt='%.4f')
