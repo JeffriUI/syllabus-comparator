@@ -286,13 +286,13 @@ def test(data_dir, model_dir):
     y_true = test_data.ds['labels'].tolist()
     inputs = test_data.ds.remove_columns('labels').data.to_pydict()
     for key in inputs.keys():
-        inputs[key] = inputs[key].long()
+        inputs[key] = torch.LongTensor(inputs[key])
 
     for model in models.keys():
         with torch.no_grad():
             logits = models[model](**inputs).logits
 
-        y_pred = logits.argmax().tolist()
+        y_pred = logits.argmax(dim=1).tolist()
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
         conf_matrix[model] = confusion_matrix(y_true, y_pred)
         fpr, tpr, _ = roc_curve(y_true, y_pred)
