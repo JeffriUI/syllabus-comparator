@@ -28,7 +28,7 @@ slm_pretrained_path = "FacebookAI/roberta-base"
 slm_to_llm_vocab_mapping_path = "vocab_mappings/roberta_small_to_roberta.json"
 llm_to_slm_vocab_mapping_path = "vocab_mappings/roberta_to_roberta_small.json"
 
-global_epochs = 3
+global_epochs = 5
 batch_size = 4
 llm_lr = 3e-5
 slm_lr = 3e-5
@@ -346,11 +346,12 @@ def run(ctx: Context):
             raise ValueError(f"party_id={ctx.local.party[1]} is illegal")
 
         train_slm(ctx, pub_data_dir, priv_data_dir_2)
-
-if __name__ == "__main__":
-    login_hf()
-    launch(run)
+    
     data_dir = f"{dataset_directory}/all"
     model_dir = "models"
     train_direct(data_dir)
     test(data_dir, model_dir)
+
+if __name__ == "__main__":
+    login_hf()
+    launch(run)
