@@ -71,14 +71,9 @@ def split_dataset(data, dataset_dir):
     dataset = Dataset.from_pandas(data, preserve_index=False)
 
     dataset = dataset.train_test_split(test_size=0.2, seed=42)
-    # Test split: 20%
-    dataset['test'].to_csv(f"{dataset_dir}/test.csv")
-
-    dataset = dataset['train'].train_test_split(test_size=0.2, seed=42)
-    # Validation split: 80% * 20% = 16%
-    dataset['test'].to_csv(f"{dataset_dir}/validation.csv")
-    # Train split: 80% * 80% = 64%
+    # Train-Test split: 80%-20%
     dataset['train'].to_csv(f"{dataset_dir}/train.csv")
+    dataset['test'].to_csv(f"{dataset_dir}/test.csv")
 
 if __name__ == "__main__":
     targets_path = "datasets/targets.csv"
@@ -96,7 +91,7 @@ if __name__ == "__main__":
         print(f"Dataset saved in path: {dataset_dir}")
     
     # Typecasting specially for public datasets having float values for labels
-    splits = ["train", "validation", "test"]
+    splits = ["train", "test"]
     for split in splits:
         path = f"datasets/public/{split}.csv"
         df = read_csv(path)

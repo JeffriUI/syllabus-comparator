@@ -1,6 +1,5 @@
 import os
 import json
-# from subprocess import _InputString
 import torch
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -17,7 +16,7 @@ from transformers import AutoConfig, DataCollatorWithPadding, RobertaForSequence
 from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc, ConfusionMatrixDisplay
 
 # Local modules for adapted classes and functions
-from modules.datasets.class_dataset import SeqClsDataset
+from modules.datasets.seq_cls_dataset import SeqClsDataset
 from modules.models.roberta import Roberta
 from modules.fedmkt.fedmkt import FedMKTTrainingArguments, FedMKTLLM, FedMKTSLM
 from modules.fedmkt.token_alignment.vocab_mapping import get_vocab_mappings
@@ -46,7 +45,6 @@ def login_hf():
 
 # Building vocab mappings
 def build_vocab_mappings():
-    # Building vocab mappings
     _ = get_vocab_mappings(slm_pretrained_path, llm_pretrained_path, slm_to_llm_vocab_mapping_path, num_processors=16)
     _ = get_vocab_mappings(llm_pretrained_path, slm_pretrained_path, llm_to_slm_vocab_mapping_path, num_processors=16)
 
@@ -64,15 +62,12 @@ def train_llm(ctx, pub_data_dir):
         torch_dtype="bfloat16"
     )
     
-    pub_data_train = SeqClsDataset(llm_pretrained_path)
-    pub_data_train.load(pub_data_dir, split="train")
-    # pub_data_val = SeqClsDataset(llm_pretrained_path)
-    # pub_data_val.load(pub_data_dir, split="validation")
+    pub_data = SeqClsDataset(llm_pretrained_path)
+    pub_data.load(pub_data_dir, split="train")
 
     training_args = FedMKTTrainingArguments(
         global_epochs=global_epochs,
         per_device_train_batch_size=1,
-        per_device_eval_batch_size=1,
         gradient_accumulation_steps=batch_size,
         learning_rate=llm_lr,
         output_dir="outputs/",
@@ -88,14 +83,13 @@ def train_llm(ctx, pub_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
         post_fedavg=True,
-        # evaluation_strategy="epoch",
         top_k_logits_keep=model.config.num_labels,
         skip_align=True,
     )
 
     fed_args = FedAVGArguments(
         aggregate_strategy='epoch',
-        aggregate_freq=global_epochs
+        aggregate_freq=1
     )
 
     with open(slm_to_llm_vocab_mapping_path, "r") as fin:
@@ -109,8 +103,7 @@ def train_llm(ctx, pub_data_dir):
         model=model,
         training_args=training_args,
         fed_args=fed_args,
-        train_set=pub_data_train.ds,
-        # val_set=pub_data_val.ds,
+        train_set=pub_data.ds,
         tokenizer=tokenizer,
         slm_tokenizers=slm_tokenizers,
         slm_to_llm_vocab_mappings=vocab_mapping,
@@ -134,21 +127,17 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         torch_dtype="bfloat16"
     )
     
-    pub_data_train = SeqClsDataset(llm_pretrained_path)
-    pub_data_train.load(pub_data_dir, split="train")
+    pub_data = SeqClsDataset(llm_pretrained_path)
+    pub_data.load(pub_data_dir, split="train")
     
-    priv_data_train = SeqClsDataset(slm_pretrained_path)
-    priv_data_train.load(priv_data_dir, split="train")
-    
-    # priv_data_val = SeqClsDataset(slm_pretrained_path)
-    # priv_data_val.load(priv_data_dir, split="validation")
+    priv_data = SeqClsDataset(slm_pretrained_path)
+    priv_data.load(priv_data_dir, split="train")
     
     slm_index = int(priv_data_dir[-1]) - 1
 
     training_args = FedMKTTrainingArguments(
         global_epochs=global_epochs,
         per_device_train_batch_size=1,
-        per_device_eval_batch_size=1,
         gradient_accumulation_steps=batch_size,
         learning_rate=slm_lr,
         output_dir="outputs/",
@@ -164,14 +153,13 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(slm_pretrained_path).vocab_size,
         post_fedavg=True,
-        # evaluation_strategy="epoch",
         top_k_logits_keep=model.config.num_labels,
         skip_align=True,
     )
 
     fed_args = FedAVGArguments(
         aggregate_strategy='epoch',
-        aggregate_freq=global_epochs
+        aggregate_freq=1
     )
 
     with open(llm_to_slm_vocab_mapping_path, "r") as fin:
@@ -185,9 +173,8 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         model=model,
         training_args=training_args,
         fed_args=fed_args,
-        pub_train_set=pub_data_train.ds,
-        priv_train_set=priv_data_train.ds,
-        # val_set=priv_data_val.ds,
+        pub_train_set=pub_data.ds,
+        priv_train_set=priv_data.ds,
         tokenizer=tokenizer,
         save_trainable_weights_only=True,
         llm_tokenizer=llm_tokenizer,
@@ -214,14 +201,11 @@ def train_direct(data_dir):
         torch_dtype="bfloat16"
     )
     
-    data_train = SeqClsDataset(slm_pretrained_path)
-    data_train.load(data_dir, split="train")
-    # data_val = SeqClsDataset(slm_pretrained_path)
-    # data_val.load(data_dir, split="validation")
+    data = SeqClsDataset(slm_pretrained_path)
+    data.load(data_dir, split="train")
     
     training_args = TrainingArguments(
         per_device_train_batch_size=1,
-        per_device_eval_batch_size=1,
         gradient_accumulation_steps=batch_size,
         learning_rate=slm_lr,
         output_dir="outputs/",
@@ -236,7 +220,6 @@ def train_direct(data_dir):
         max_grad_norm=1.0,
         num_train_epochs=global_epochs,
         use_cpu=False,
-        # evaluation_strategy="epoch",
     )
 
     tokenizer = get_tokenizer(slm_pretrained_path)
@@ -245,8 +228,7 @@ def train_direct(data_dir):
         model=model,
         tokenizer=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
-        train_dataset=data_train.ds,
-        # eval_dataset=data_val.ds,
+        train_dataset=data.ds,
         args=training_args,
         save_trainable_weights_only=True
     )
@@ -321,14 +303,10 @@ def test(data_dir, model_dir):
     # Visualize Confusion Matrix
     for model in models.keys():
         cm_display = ConfusionMatrixDisplay(confusion_matrix=conf_matrix[model])
-        cm_display.plot(cmap=plt.cm.Blues)
+        cm_display.plot(cmap=plt.cm.Blues, display_labels=["Non-equivalent", "Equivalent"])
         plt.savefig(f"./graphs/confusion_matrix_{model}.png")
 
 def run(ctx: Context):
-    # Command line to build vocab mappings
-    # Doesn't need to be run if build_vocab_mappings.py was run separately
-    # build_vocab_mappings()
-    
     pub_data_dir = f'{dataset_directory}/public'
     priv_data_dir_1 = f'{dataset_directory}/private_1'
     priv_data_dir_2 = f'{dataset_directory}/private_2'
@@ -349,9 +327,16 @@ def run(ctx: Context):
     
     data_dir = f"{dataset_directory}/all"
     model_dir = "models"
-    train_direct(data_dir)
-    test(data_dir, model_dir)
+    
+    if ctx.is_on_guest:
+        train_direct(data_dir)
+        test(data_dir, model_dir)
 
 if __name__ == "__main__":
     login_hf()
+    
+    # Command line to build vocab mappings
+    # Doesn't need to be run if build_vocab_mappings.py was run separately
+    # build_vocab_mappings()
+    
     launch(run)

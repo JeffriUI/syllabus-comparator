@@ -1,13 +1,13 @@
-from modules.token_alignment.vocab_mapping import get_vocab_mappings
+from modules.fedmkt.token_alignment.vocab_mapping import get_vocab_mappings
 from huggingface_hub import login
 from dotenv import load_dotenv
 import os
 
-llm_pretrained_path = "meta-llama/Llama-2-7b-hf"
-slm_pretrained_path = "FacebookAI/roberta-large"
+llm_pretrained_path = "FacebookAI/roberta-large"
+slm_pretrained_path = "FacebookAI/roberta-base"
 
-slm_to_llm_vocab_mapping_path = "vocab_mappings/roberta_to_llama.json"
-llm_to_slm_vocab_mapping_path = "vocab_mappings/llama_to_roberta.json"
+slm_to_llm_vocab_mapping_path = "vocab_mappings/roberta_small_to_roberta.json"
+llm_to_slm_vocab_mapping_path = "vocab_mappings/roberta_to_roberta_small.json"
 
 def build_vocab_mappings():
     load_dotenv()
