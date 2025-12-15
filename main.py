@@ -13,7 +13,7 @@ from fate.ml.nn.homo.fedavg import FedAVGArguments
 from fate_llm.data.tokenizers.cust_tokenizer import get_tokenizer
 from peft import LoraConfig, TaskType
 from transformers import AutoConfig, DataCollatorWithPadding, RobertaForSequenceClassification
-from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, roc_curve, auc, ConfusionMatrixDisplay
 
 # Local modules for adapted classes and functions
 from modules.datasets.seq_cls_dataset import SeqClsDataset
@@ -195,7 +195,7 @@ def train_direct(data_dir):
     )
 
     model = Roberta(
-        pretrained_path=llm_pretrained_path,
+        pretrained_path=slm_pretrained_path,
         peft_type="LoraConfig",
         peft_config=lora_config.to_dict(),
         torch_dtype="bfloat16"
@@ -237,19 +237,21 @@ def train_direct(data_dir):
     trainer.save_model("models/direct")
 
 def test(data_dir, model_dir):
+    robertaConfig = AutoConfig.from_pretrained(slm_pretrained_path)
+    
     direct_model = RobertaForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=f'{model_dir}/direct',
-        config=AutoConfig.from_pretrained(llm_pretrained_path),
+        config=robertaConfig,
         torch_dtype=getattr(torch, "bfloat16")
     )
     fed_1_model = RobertaForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=f'{model_dir}/slm_1',
-        config=AutoConfig.from_pretrained(slm_pretrained_path),
+        config=robertaConfig,
         torch_dtype=getattr(torch, "bfloat16")
     )
     fed_2_model = RobertaForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=f'{model_dir}/slm_2',
-        config=AutoConfig.from_pretrained(slm_pretrained_path),
+        config=robertaConfig,
         torch_dtype=getattr(torch, "bfloat16")
     )
     
@@ -259,6 +261,7 @@ def test(data_dir, model_dir):
         'FedClient2': fed_2_model
     }
     
+    acc_scores = {}
     f1_scores = {}
     conf_matrix = {}
     
@@ -279,6 +282,7 @@ def test(data_dir, model_dir):
 
         probs = logits.to(torch.float16).softmax(dim=-1).detach()
         y_pred = probs.apply_(find_diff).argmax(dim=-1).numpy().tolist()
+        acc_scores[model] = accuracy_score(y_true, y_pred)
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
         conf_matrix[model] = confusion_matrix(y_true, y_pred)
         fpr, tpr, _ = roc_curve(y_true, y_pred)
@@ -286,12 +290,19 @@ def test(data_dir, model_dir):
         plt.plot(fpr, tpr, label=f'{model} (AUC = {roc_auc:.2f})')
     
     # Visualize AUC ROC Curve
-    plt.plot([0, 1], [0, 1], 'r--', label='Random Guess')
+    plt.plot([0, 1], [0, 1], 'r--', label='Random Guess (AUC = 0.5)')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ROC Curves for Two Models')
+    plt.title('ROC Curves for the Models (All RoBERTa-Base)')
     plt.legend()
     plt.savefig("./graphs/auc_roc_curve.png")
+    
+    # Visualize Accuracy-scores distribution
+    plt.clf()
+    bars = plt.bar(acc_scores.keys(), acc_scores.values(), bottom=np.zeros(3))
+    plt.title('Accuracy-scores Distribution')
+    plt.bar_label(bars, fmt='%.4f')
+    plt.savefig("./graphs/acc_scores.png")
     
     # Visualize F1-scores distribution
     plt.clf()
@@ -302,6 +313,7 @@ def test(data_dir, model_dir):
     
     # Visualize Confusion Matrix
     for model in models.keys():
+        plt.clf()
         cm_display = ConfusionMatrixDisplay(confusion_matrix=conf_matrix[model])
         cm_display.plot(cmap=plt.cm.Blues, display_labels=["Non-equivalent", "Equivalent"])
         plt.savefig(f"./graphs/confusion_matrix_{model}.png")
