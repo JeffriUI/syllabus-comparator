@@ -282,7 +282,7 @@ def test(data_dir, model_dir):
 
         probs = logits.to(torch.float16).softmax(dim=-1).detach()
         y_pred = probs.apply_(find_diff).argmax(dim=-1).numpy().tolist()
-        y_score = probs.numpy().tolist()[:,1]
+        y_score = probs.numpy()[:,1].tolist()
         acc_scores[model] = accuracy_score(y_true, y_pred)
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
         conf_matrix[model] = confusion_matrix(y_true, y_pred)
