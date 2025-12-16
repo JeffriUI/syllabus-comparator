@@ -13,7 +13,7 @@ from fate.ml.nn.homo.fedavg import FedAVGArguments
 from fate_llm.data.tokenizers.cust_tokenizer import get_tokenizer
 from peft import LoraConfig, TaskType
 from transformers import AutoConfig, DataCollatorWithPadding, RobertaForSequenceClassification
-from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, roc_curve, auc, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, precision_recall_curve, auc, ConfusionMatrixDisplay
 
 # Local modules for adapted classes and functions
 from modules.datasets.seq_cls_dataset import SeqClsDataset
@@ -282,20 +282,20 @@ def test(data_dir, model_dir):
 
         probs = logits.to(torch.float16).softmax(dim=-1).detach()
         y_pred = probs.apply_(find_diff).argmax(dim=-1).numpy().tolist()
+        y_score = probs.numpy().tolist()[:,1]
         acc_scores[model] = accuracy_score(y_true, y_pred)
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
         conf_matrix[model] = confusion_matrix(y_true, y_pred)
-        fpr, tpr, _ = roc_curve(y_true, y_pred)
-        roc_auc = auc(fpr, tpr)
-        plt.plot(fpr, tpr, label=f'{model} (AUC = {roc_auc:.2f})')
+        precision, recall, _ = precision_recall_curve(y_true, y_score)
+        prec_rec_auc = auc(recall, precision)
+        plt.plot(recall, precision, label=f'{model} (AUC = {prec_rec_auc:.2f})')
     
-    # Visualize AUC ROC Curve
-    plt.plot([0, 1], [0, 1], 'r--', label='Random Guess (AUC = 0.5)')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('ROC Curves for the Models (All RoBERTa-Base)')
+    # Visualize Precision-Recall Curve
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curves (All RoBERTa-125M)')
     plt.legend()
-    plt.savefig("./graphs/auc_roc_curve.png")
+    plt.savefig("./graphs/prec_rec_curve.png")
     
     # Visualize Accuracy-scores distribution
     plt.clf()
@@ -314,8 +314,9 @@ def test(data_dir, model_dir):
     # Visualize Confusion Matrix
     for model in models.keys():
         plt.clf()
-        cm_display = ConfusionMatrixDisplay(confusion_matrix=conf_matrix[model])
-        cm_display.plot(cmap=plt.cm.Blues, display_labels=["Non-equivalent", "Equivalent"])
+        cm_display = ConfusionMatrixDisplay(confusion_matrix=conf_matrix[model], 
+                                            display_labels=["Non-equivalent", "Equivalent"])
+        cm_display.plot(cmap=plt.cm.Blues)
         plt.savefig(f"./graphs/confusion_matrix_{model}.png")
 
 def run(ctx: Context):
