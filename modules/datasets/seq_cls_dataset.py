@@ -89,7 +89,8 @@ class SeqClsDataset(Dataset):
             out['labels'] = examples['label']
             return out
         
-        preprocessed_data = data.map(preprocess_text, batched=True)
+        # preprocessed_data = data.map(preprocess_text, batched=True)
+        preprocessed_data = data
         self.ds = preprocessed_data.map(
             tokenize_text, batched=True, remove_columns=preprocessed_data.column_names)
         self.ds.set_format('torch')

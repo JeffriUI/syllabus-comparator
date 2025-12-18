@@ -29,8 +29,8 @@ llm_to_slm_vocab_mapping_path = "vocab_mappings/roberta_to_roberta_small.json"
 
 global_epochs = 5
 batch_size = 4
-llm_lr = 3e-5
-slm_lr = 3e-5
+llm_lr = 3e-4
+slm_lr = 3e-4
 
 dataset_directory = "datasets"
 
@@ -238,7 +238,9 @@ def train_direct(data_dir):
 
 def test(data_dir, model_dir):
     robertaModel = RobertaForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path=slm_pretrained_path)
+        pretrained_model_name_or_path=slm_pretrained_path,
+        torch_dtype=torch.bfloat16
+    )
     
     direct_model = PeftModel.from_pretrained(
         model=robertaModel,
