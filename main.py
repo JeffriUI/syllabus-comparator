@@ -11,7 +11,7 @@ from fate.arch import Context
 from fate.arch.launchers.multiprocess_launcher import launch
 from fate.ml.nn.homo.fedavg import FedAVGArguments
 from fate_llm.data.tokenizers.cust_tokenizer import get_tokenizer
-from peft import LoraConfig, TaskType
+from peft import LoraConfig, TaskType, PeftModel
 from transformers import AutoConfig, DataCollatorWithPadding, RobertaForSequenceClassification
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, precision_recall_curve, auc, ConfusionMatrixDisplay
 
@@ -255,6 +255,31 @@ def test(data_dir, model_dir):
         torch_dtype=getattr(torch, "bfloat16")
     )
     
+    
+    lora_config = LoraConfig(
+        task_type=TaskType.SEQ_CLS,
+        inference_mode=True, r=8, lora_alpha=32, lora_dropout=0.1,
+        target_modules=["query", "value"]
+    )
+    
+    direct_model = PeftModel.from_pretrained(
+        model=direct_model,
+        model_id=f'{model_dir}/direct',
+        config = lora_config
+    )
+    
+    fed_1_model = PeftModel.from_pretrained(
+        model=fed_1_model,
+        model_id=f'{model_dir}/slm_1',
+        config = lora_config
+    )
+    
+    fed_2_model = PeftModel.from_pretrained(
+        model=fed_2_model,
+        model_id=f'{model_dir}/slm_2',
+        config = lora_config
+    )
+    
     models = {
         'Direct': direct_model,
         'FedClient1': fed_1_model,
@@ -281,7 +306,7 @@ def test(data_dir, model_dir):
             logits = models[model](**inputs).logits
 
         probs = logits.to(torch.float16).softmax(dim=-1).detach()
-        y_pred = probs.apply_(find_diff).argmax(dim=-1).numpy().tolist()
+        y_pred = probs.argmax(dim=-1).numpy().tolist()
         y_score = probs.numpy()[:,1].tolist()
         acc_scores[model] = accuracy_score(y_true, y_pred)
         f1_scores[model] = f1_score(y_true, y_pred, average='weighted')
@@ -317,6 +342,7 @@ def test(data_dir, model_dir):
         cm_display = ConfusionMatrixDisplay(confusion_matrix=conf_matrix[model], 
                                             display_labels=["Non-equivalent", "Equivalent"])
         cm_display.plot(cmap=plt.cm.Blues)
+        plt.tight_layout()
         plt.savefig(f"./graphs/confusion_matrix_{model}.png")
 
 def run(ctx: Context):
