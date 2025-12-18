@@ -237,47 +237,22 @@ def train_direct(data_dir):
     trainer.save_model("models/direct")
 
 def test(data_dir, model_dir):
-    robertaConfig = AutoConfig.from_pretrained(slm_pretrained_path)
-    
-    direct_model = RobertaForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path=f'{model_dir}/direct',
-        config=robertaConfig,
-        torch_dtype=getattr(torch, "bfloat16")
-    )
-    fed_1_model = RobertaForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path=f'{model_dir}/slm_1',
-        config=robertaConfig,
-        torch_dtype=getattr(torch, "bfloat16")
-    )
-    fed_2_model = RobertaForSequenceClassification.from_pretrained(
-        pretrained_model_name_or_path=f'{model_dir}/slm_2',
-        config=robertaConfig,
-        torch_dtype=getattr(torch, "bfloat16")
-    )
-    
-    
-    lora_config = LoraConfig(
-        task_type=TaskType.SEQ_CLS,
-        inference_mode=True, r=8, lora_alpha=32, lora_dropout=0.1,
-        target_modules=["query", "value"]
-    )
+    robertaModel = RobertaForSequenceClassification.from_pretrained(
+        pretrained_model_name_or_path=slm_pretrained_path)
     
     direct_model = PeftModel.from_pretrained(
-        model=direct_model,
-        model_id=f'{model_dir}/direct',
-        config = lora_config
+        model=robertaModel,
+        model_id=f'{model_dir}/direct'
     )
     
     fed_1_model = PeftModel.from_pretrained(
-        model=fed_1_model,
-        model_id=f'{model_dir}/slm_1',
-        config = lora_config
+        model=robertaModel,
+        model_id=f'{model_dir}/slm_1'
     )
     
     fed_2_model = PeftModel.from_pretrained(
-        model=fed_2_model,
-        model_id=f'{model_dir}/slm_2',
-        config = lora_config
+        model=robertaModel,
+        model_id=f'{model_dir}/slm_2'
     )
     
     models = {
