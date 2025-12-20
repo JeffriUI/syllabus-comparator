@@ -1,10 +1,9 @@
 import torch
 import logging
 import datasets
-from dataclasses import dataclass, field
-
 import transformers
 
+from dataclasses import dataclass, field
 from modules.trainer.trainer import TrainingArguments
 from typing import Dict, Optional, List, Callable, Union
 from fate.arch import Context
@@ -311,6 +310,10 @@ class FedMKTSLM(FedMKTBase):
             if self.training_args.post_fedavg and (i + 1) % self.fed_args.aggregate_freq == 0:
                 self.aggregator.model_aggregation(iter_ctx, self.model)
 
+        priv_log = priv_trainer.state.log_history
+        fedmkt_log = fedmkt_trainer.state.log_history
+        return priv_log, fedmkt_log
+
     def _init_trainer_for_distill(self, train_set):
         public_data_training_args = self._get_pub_data_kd_training_args()
         fedmkt_trainer = FedMKTTrainer(
@@ -324,7 +327,6 @@ class FedMKTSLM(FedMKTBase):
                 padding="max_length",
                 max_length=max(len(d["input_ids"]) for d in train_set),
                 blending_num=1,
-                # vocab_size=self.training_args.vocab_size,
                 num_labels = self.model.config.num_labels,
                 dtype=next(self.model.parameters()).dtype,
                 distill_temperature=self.training_args.distill_temperature
@@ -536,7 +538,6 @@ class FedMKTLLM(FedMKTBase):
                         padding="max_length",
                         max_length=max(len(d["input_ids"]) for d in aligend_train_set),
                         blending_num=len(self.slm_tokenizers),
-                        # vocab_size=self.training_args.vocab_size,
                         num_labels = self.model.config.num_labels,
                         dtype=next(self.model.parameters()).dtype,
                         distill_temperature=self.training_args.distill_temperature
@@ -551,3 +552,6 @@ class FedMKTLLM(FedMKTBase):
                 self.model = unwrap_model(fedmkt_trainer.model)
 
             previous_pub_logits = self.on_epoch_end(iter_ctx, i)
+
+        log = fedmkt_trainer.state.log_history
+        return log

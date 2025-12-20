@@ -2,7 +2,6 @@ import os
 import json
 import torch
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
 
 from dotenv import load_dotenv
@@ -29,8 +28,8 @@ llm_to_slm_vocab_mapping_path = "vocab_mappings/roberta_to_roberta_small.json"
 
 global_epochs = 5
 batch_size = 4
-llm_lr = 3e-4
-slm_lr = 3e-4
+llm_lr = 3e-3
+slm_lr = 3e-3
 
 dataset_directory = "datasets"
 
@@ -80,6 +79,8 @@ def train_llm(ctx, pub_data_dir):
         adam_beta2=0.95,
         weight_decay=0.1,
         max_grad_norm=1.0,
+        logging_strategy="epoch",
+        save_strategy="epoch",
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(llm_pretrained_path).vocab_size,
         post_fedavg=True,
@@ -110,8 +111,10 @@ def train_llm(ctx, pub_data_dir):
         save_trainable_weights_only=True,
     )
 
-    trainer.train()
+    log = trainer.train()
     trainer.save_model(llm_model_saved_directory)
+    
+    return log
 
 def train_slm(ctx, pub_data_dir, priv_data_dir):
     lora_config = LoraConfig(
@@ -150,6 +153,8 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         adam_beta2=0.95,
         weight_decay=0.1,
         max_grad_norm=1.0,
+        logging_strategy="epoch",
+        save_strategy="epoch",
         use_cpu=False,
         vocab_size=AutoConfig.from_pretrained(slm_pretrained_path).vocab_size,
         post_fedavg=True,
@@ -182,9 +187,11 @@ def train_slm(ctx, pub_data_dir, priv_data_dir):
         data_collator=DataCollatorWithPadding(tokenizer)
     )
 
-    trainer.train()
+    priv_log, fedmkt_log = trainer.train()
     trainer.save_model(slm_models_saved_directory[slm_index])
-    
+
+    return priv_log, fedmkt_log
+
 def train_direct(data_dir):
     from modules.trainer.trainer import TrainingArguments, Trainer
     
@@ -219,6 +226,8 @@ def train_direct(data_dir):
         weight_decay=0.1,
         max_grad_norm=1.0,
         num_train_epochs=global_epochs,
+        logging_strategy="epoch",
+        save_strategy="epoch",
         use_cpu=False,
     )
 
@@ -236,7 +245,9 @@ def train_direct(data_dir):
     trainer.train()
     trainer.save_model("models/direct")
 
-def test(data_dir, model_dir):
+    return trainer.state.log_history
+
+def test(data_dir, model_dir, logs):
     robertaModel = RobertaForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=slm_pretrained_path,
         torch_dtype=torch.bfloat16
@@ -274,9 +285,6 @@ def test(data_dir, model_dir):
     inputs = test_data.ds.remove_columns('labels').data.to_pydict()
     for key in inputs.keys():
         inputs[key] = torch.LongTensor(inputs[key])
-    
-    def find_diff(value):
-        return abs(value - 0.5)
 
     for model in models.keys():
         with torch.no_grad():
@@ -321,32 +329,132 @@ def test(data_dir, model_dir):
         cm_display.plot(cmap=plt.cm.Blues)
         plt.tight_layout()
         plt.savefig(f"./graphs/confusion_matrix_{model}.png")
+    
+    log_keys_to_model = {
+        "server": "Server (RoBERTa-355M)",
+        "client_1": "Client 1 (RoBERTa-125M)",
+        "client_2": "Client 2 (RoBERTa-125M)",
+        "direct": "Standalone (RoBERTa-125M)"
+    }
+    
+    # Visualize each model's loss progression by epoch
+    loss = {
+        "server": [],
+        "client_1": [],
+        "client_2": [],
+        "direct": []
+    }
+    
+    client_1_priv_loss = []
+    client_1_fedmkt_loss = []
+    client_2_priv_loss = []
+    client_2_fedmkt_loss = []
+    
+    for i in range(len(logs)):
+        loss["server"].append(logs[i]["llm"]["train_loss"])
+        client_1_priv_loss.append(logs[i]["slm_1_priv"]["train_loss"])
+        client_1_fedmkt_loss.append(logs[i]["slm_1_fedmkt"]["train_loss"])
+        client_2_priv_loss.append(logs[i]["slm_2_priv"]["train_loss"])
+        client_2_fedmkt_loss.append(logs[i]["slm_2_fedmkt"]["train_loss"])
+        loss["direct"].append(logs[i]["direct"]["train_loss"])
+    
+    # Averaging client loss values, due to being separated to a private trainer and FedMKT trainer
+    for i in range(len(logs)):
+        loss["client_1"].append((client_1_priv_loss[i] + client_1_fedmkt_loss[i]) / 2)
+        loss["client_2"].append((client_2_priv_loss[i] + client_2_fedmkt_loss[i]) / 2)
+    
+    plt.figure()
+    for key in loss.keys():
+        x = range(1, len(logs)+1)
+        y = loss[key]
+        
+        plt.plot(x, y, marker='o', label=f'{log_keys_to_model[key]}')
+        
+        for (xi, yi) in zip(x, y):
+            plt.annotate(f'{yi}', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center')
+    
+    plt.title('Loss Chart by Model by Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss Value')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("./graphs/loss.png")
+    
+    # Visualize each model's runtime accumulative by epoch
+    runtime = {
+        "server": [],
+        "client_1": [],
+        "client_2": [],
+        "direct": []
+    }
+    
+    client_1_priv_runtime = []
+    client_1_fedmkt_runtime = []
+    client_2_priv_runtime = []
+    client_2_fedmkt_runtime = []
+    
+    for i in range(len(logs)):
+        runtime["server"].append(logs[i]["llm"]["train_runtime"])
+        client_1_priv_runtime.append(logs[i]["slm_1_priv"]["train_runtime"])
+        client_1_fedmkt_runtime.append(logs[i]["slm_1_fedmkt"]["train_runtime"])
+        client_2_priv_runtime.append(logs[i]["slm_2_priv"]["train_runtime"])
+        client_2_fedmkt_runtime.append(logs[i]["slm_2_fedmkt"]["train_runtime"])
+        runtime["direct"].append(logs[i]["direct"]["train_runtime"])
+    
+    # Summing client runtime, due to being separated to a private trainer and FedMKT trainer
+    for i in range(len(logs)):
+        runtime["client_1"].append(client_1_priv_runtime[i] + client_1_fedmkt_runtime[i])
+        runtime["client_2"].append(client_2_priv_runtime[i] + client_2_fedmkt_runtime[i])
+    
+    # Accumulating each runtime point by its previous epoch, to show the accumulative runtime progression
+    for i in range(1, len(logs)):
+        runtime["client_1"][i] = sum(runtime["client_1"][0:i+1])
+        runtime["client_2"][i] = sum(runtime["client_2"][0:i+1])
+    
+    plt.figure()
+    for key in runtime.keys():
+        x = range(1, len(logs)+1)
+        y = runtime[key]
+        
+        plt.plot(x, y, marker='o', label=f'{log_keys_to_model[key]}')
+        
+        for (xi, yi) in zip(x, y):
+            plt.annotate(f'{yi}', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center')
+    
+    plt.title('Runtime Chart by Model by Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Runtime (Accumulative)')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("./graphs/runtime.png")
 
 def run(ctx: Context):
     pub_data_dir = f'{dataset_directory}/public'
     priv_data_dir_1 = f'{dataset_directory}/private_1'
     priv_data_dir_2 = f'{dataset_directory}/private_2'
     
+    logs = {}
+    
     if ctx.is_on_arbiter:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-        train_llm(ctx, pub_data_dir)
+        logs["llm"] = train_llm(ctx, pub_data_dir)
     elif ctx.is_on_guest:
         os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-        train_slm(ctx, pub_data_dir, priv_data_dir_1)
+        logs["slm_1_priv"], logs["slm_1_fedmkt"] = train_slm(ctx, pub_data_dir, priv_data_dir_1)
     else:
         if ctx.local.party[1] == "9999":
             os.environ["CUDA_VISIBLE_DEVICES"] = "2"
         else:
             raise ValueError(f"party_id={ctx.local.party[1]} is illegal")
 
-        train_slm(ctx, pub_data_dir, priv_data_dir_2)
+        logs["slm_2_priv"], logs["slm_2_fedmkt"] = train_slm(ctx, pub_data_dir, priv_data_dir_2)
     
     data_dir = f"{dataset_directory}/all"
     model_dir = "models"
     
     if ctx.is_on_guest:
-        train_direct(data_dir)
-        test(data_dir, model_dir)
+        logs["direct"] = train_direct(data_dir)
+        test(data_dir, model_dir, logs)
 
 if __name__ == "__main__":
     login_hf()
