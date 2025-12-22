@@ -454,6 +454,10 @@ def run(ctx: Context):
     
     if ctx.is_on_guest:
         logs["direct"] = train_direct(data_dir)
+        with open("logs/logs.json", "w") as fout:
+            json.dump(logs, fout)
+        with open("logs/logs.json", "r") as fin:
+            logs = json.loads(fin.read())
         test(data_dir, model_dir, logs)
 
 if __name__ == "__main__":
