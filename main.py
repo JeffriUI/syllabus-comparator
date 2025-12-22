@@ -242,10 +242,10 @@ def train_direct(data_dir):
         save_trainable_weights_only=True
     )
 
-    trainer.train()
+    log = trainer.train()
     trainer.save_model("models/direct")
 
-    return trainer.state.log_history
+    return log
 
 def test(data_dir, model_dir, logs):
     robertaModel = RobertaForSequenceClassification.from_pretrained(

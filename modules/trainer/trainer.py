@@ -6,13 +6,14 @@ import os
 import torch
 import copy
 from torch import nn
-from typing import Any, Dict, List, Callable
+from typing import Any, Dict, List, Callable, Tuple, Union
 from enum import Enum
 from fate.arch import Context
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
-from transformers import PreTrainedTokenizer
+from transformers import PreTrainedTokenizer, PreTrainedModel
 from transformers import Trainer as _hf_Trainer, EvalPrediction
+from transformers.data.data_collator import DataCollator
 from transformers.trainer_utils import has_length
 from torch.utils.data import _utils
 from transformers.trainer_callback import TrainerCallback
@@ -69,13 +70,54 @@ class TrainingArguments(_TrainingArguments):
         set_args = {name: value for name, value in all_args.items() if value != default_args.get(name)}
         return set_args
 
-class Trainer(_hf_Trainer):
-    save_trainable_weights_only: bool =  False
-    
-    def __init__(self, *args, **kwargs):
-        save_trainable_weights_only = kwargs.pop("save_trainable_weights_only", False)
-        super(Trainer, self).__init__(*args, **kwargs)
+class Trainer(object):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        args: _hf_TrainingArguments,
+        data_collator: Optional[DataCollator] = None,
+        train_dataset: Optional[Dataset] = None,
+        eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
+        tokenizer: Optional[PreTrainedTokenizer] = None,
+        model_init: Optional[Callable[[], PreTrainedModel]] = None,
+        compute_metrics: Optional[Callable[[EvalPrediction], Dict]] = None,
+        callbacks: Optional[List[TrainerCallback]] = None,
+        optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None),
+        preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
+        save_trainable_weights_only: bool =  False
+    ):
+        self.model = model
+        self.args = args
+        self.data_collator = data_collator
+        self.train_dataset = train_dataset
+        self.eval_dataset = eval_dataset
+        self.tokenizer = tokenizer
+        self.model_init = model_init
+        self.compute_metrics = compute_metrics
+        self.callbacks = callbacks
+        self.optimizers = optimizers
+        self.preprocess_logits_for_metrics = preprocess_logits_for_metrics
         self.save_trainable_weights_only = save_trainable_weights_only
+    
+    def train(self):
+        trainer = _hf_Trainer(
+            model=self.model,
+            args=self.training_args,
+            data_collator=self.data_collator,
+            train_dataset=self.train_dataset,
+            eval_dataset=self.eval_dataset,
+            tokenizer=self.tokenizer,
+            model_init=self.model_init,
+            compute_metrics=self.compute_metrics,
+            callbacks=self.callbacks,
+            optimizers=self.optimizers,
+            preprocess_logits_for_metrics=self.preprocess_logits_for_metrics
+        )
+        
+        trainer.train()
+        self.model = unwrap_model(trainer.model)
+        
+        return trainer.state.log_history
 
     def save_model(
         self,
