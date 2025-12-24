@@ -454,6 +454,10 @@ def run(ctx: Context):
     
     if ctx.is_on_guest:
         logs["direct"] = train_direct(data_dir)
+        log_keys = ["llm", "slm_1_priv", "slm_1_fedmkt", "slm_2_priv", "slm_2_fedmkt", "direct"]
+        # Loop to wait until all logs are stored before continuing to test
+        while not all(key in log_keys for key in logs.keys()):
+            continue
         with open("logs/logs.json", "w") as fout:
             json.dump(logs, fout)
         with open("logs/logs.json", "r") as fin:
