@@ -102,7 +102,7 @@ class Trainer(object):
     def train(self):
         trainer = _hf_Trainer(
             model=self.model,
-            args=self.training_args,
+            args=self.args,
             data_collator=self.data_collator,
             train_dataset=self.train_dataset,
             eval_dataset=self.eval_dataset,

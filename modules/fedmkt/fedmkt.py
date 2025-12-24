@@ -212,6 +212,9 @@ class FedMKTSLM(FedMKTBase):
 
     def train(self):
         global_epochs = self.training_args.global_epochs
+        
+        priv_log = []
+        fedmkt_log = []
 
         llm_pub_logits = None
         for i, iter_ctx in self.ctx.on_iterations.ctxs_range(global_epochs):
@@ -248,6 +251,7 @@ class FedMKTSLM(FedMKTBase):
 
             logger.info(f"begin {i}-th private data training process")
             priv_trainer.train()
+            priv_log.append(priv_trainer.state.log_history)
 
             self.model = unwrap_model(priv_trainer.model)
 
@@ -305,13 +309,12 @@ class FedMKTSLM(FedMKTBase):
             logger.info(f"begin {i}-th public logits kd process")
             fedmkt_trainer = self._init_trainer_for_distill(aligned_dataset)
             fedmkt_trainer.train()
+            fedmkt_log.append(fedmkt_trainer.state.log_history)
             self.model = unwrap_model(fedmkt_trainer.model)
 
             if self.training_args.post_fedavg and (i + 1) % self.fed_args.aggregate_freq == 0:
                 self.aggregator.model_aggregation(iter_ctx, self.model)
 
-        priv_log = priv_trainer.state.log_history
-        fedmkt_log = fedmkt_trainer.state.log_history
         return priv_log, fedmkt_log
 
     def _init_trainer_for_distill(self, train_set):
@@ -519,6 +522,8 @@ class FedMKTLLM(FedMKTBase):
     def train(self):
         global_epochs = self.training_args.global_epochs
         previous_pub_logits = None
+        
+        log = []
 
         for i, iter_ctx in self.ctx.on_iterations.ctxs_range(global_epochs):
             logger.info(f"begin {i}-th global kd process")
@@ -549,9 +554,9 @@ class FedMKTLLM(FedMKTBase):
                 )
 
                 fedmkt_trainer.train()
+                log.append(fedmkt_trainer.state.log_history)
                 self.model = unwrap_model(fedmkt_trainer.model)
 
             previous_pub_logits = self.on_epoch_end(iter_ctx, i)
 
-        log = fedmkt_trainer.state.log_history
         return log
