@@ -2,6 +2,7 @@ import torch
 import logging
 import datasets
 import transformers
+import time
 
 from dataclasses import dataclass, field
 from modules.trainer.trainer import TrainingArguments
@@ -279,12 +280,14 @@ class FedMKTSLM(FedMKTBase):
                     logger.debug(f"send {i}-th public logits to llm")
                     iter_ctx.arbiter.put("slm_pub_logits", slm_pub_logits.to_dict())
 
+                start_time = time.time()
                 if self.training_args.llm_training or not i:
                     llm_pub_logits = datasets.Dataset.from_dict(iter_ctx.arbiter.get("llm_pub_logits"))
                     if self.training_args.world_size > 1:
                         logger.info("sync llm_pub_logits")
                         sync_dataset(llm_pub_logits, self.training_args.local_rank,
                                      self.training_args.world_size, self.training_args.device)
+                delay = time.time() - start_time
             else:
                 slm_pub_logits = sync_dataset(
                     None, self.training_args.local_rank, self.training_args.world_size, self.training_args.device
@@ -309,6 +312,7 @@ class FedMKTSLM(FedMKTBase):
             logger.info(f"begin {i}-th public logits kd process")
             fedmkt_trainer = self._init_trainer_for_distill(aligned_dataset)
             fedmkt_trainer.train()
+            fedmkt_trainer.state.log_history[1]["delay"] = delay
             fedmkt_log.append(fedmkt_trainer.state.log_history)
             self.model = unwrap_model(fedmkt_trainer.model)
 
@@ -528,7 +532,9 @@ class FedMKTLLM(FedMKTBase):
         for i, iter_ctx in self.ctx.on_iterations.ctxs_range(global_epochs):
             logger.info(f"begin {i}-th global kd process")
 
+            start_time = time.time()
             aligend_train_set = self.on_epoch_begin(iter_ctx, i, previous_pub_logits)
+            delay = time.time() - start_time
             if self.training_args.llm_training:
 
                 public_data_training_args = self._get_pub_data_kd_training_args()
@@ -554,6 +560,7 @@ class FedMKTLLM(FedMKTBase):
                 )
 
                 fedmkt_trainer.train()
+                fedmkt_trainer.state.log_history[1]["delay"] = delay
                 log.append(fedmkt_trainer.state.log_history)
                 self.model = unwrap_model(fedmkt_trainer.model)
 

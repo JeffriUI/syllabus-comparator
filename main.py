@@ -37,6 +37,8 @@ llm_model_saved_directory = "models/llm"
 slm_models_saved_directory = ["models/slm_1",
                               "models/slm_2"]
 
+logs = {}
+
 def login_hf():
     load_dotenv()
     HF_ACCESS_TOKEN = os.getenv('HF_ACCESS_TOKEN')
@@ -402,12 +404,12 @@ def test(data_dir, model_dir, logs):
         runtime["direct"].append(logs[i]["direct"]["train_runtime"])
     
     # Summing client runtime, due to being separated to a private trainer and FedMKT trainer
-    for i in range(len(logs)):
+    for i in range(global_epochs):
         runtime["client_1"].append(client_1_priv_runtime[i] + client_1_fedmkt_runtime[i])
         runtime["client_2"].append(client_2_priv_runtime[i] + client_2_fedmkt_runtime[i])
     
     # Accumulating each runtime point by its previous epoch, to show the accumulative runtime progression
-    for i in range(1, len(logs)):
+    for i in range(1, global_epochs+1):
         runtime["client_1"][i] = sum(runtime["client_1"][0:i+1])
         runtime["client_2"][i] = sum(runtime["client_2"][0:i+1])
     
@@ -429,11 +431,11 @@ def test(data_dir, model_dir, logs):
     plt.savefig("./graphs/runtime.png")
 
 def run(ctx: Context):
+    global logs
+    
     pub_data_dir = f'{dataset_directory}/public'
     priv_data_dir_1 = f'{dataset_directory}/private_1'
     priv_data_dir_2 = f'{dataset_directory}/private_2'
-    
-    logs = {}
     
     if ctx.is_on_arbiter:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
