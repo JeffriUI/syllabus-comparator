@@ -249,7 +249,7 @@ def train_direct(data_dir):
 
     return log
 
-def test(data_dir, model_dir, logs):
+def test(data_dir, model_dir, logs_dir):
     robertaModel = RobertaForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=slm_pretrained_path,
         torch_dtype=torch.bfloat16
@@ -339,12 +339,19 @@ def test(data_dir, model_dir, logs):
         "direct": "Standalone (RoBERTa-125M)"
     }
     
+    filenames = ["server", "client_1", "client_2", "control"]
+    logs = {}
+    for fname in filenames:
+        with open(f"{logs_dir}/{fname}_logs.json", "r") as fin:
+            temp = json.loads(fin.read())
+        logs[fname] = temp
+    
     # Visualize each model's loss progression by epoch
     loss = {
         "server": [],
         "client_1": [],
         "client_2": [],
-        "direct": []
+        "control": []
     }
     
     client_1_priv_loss = []
@@ -352,119 +359,118 @@ def test(data_dir, model_dir, logs):
     client_2_priv_loss = []
     client_2_fedmkt_loss = []
     
-    for i in range(len(logs)):
-        loss["server"].append(logs[i]["llm"]["train_loss"])
-        client_1_priv_loss.append(logs[i]["slm_1_priv"]["train_loss"])
-        client_1_fedmkt_loss.append(logs[i]["slm_1_fedmkt"]["train_loss"])
-        client_2_priv_loss.append(logs[i]["slm_2_priv"]["train_loss"])
-        client_2_fedmkt_loss.append(logs[i]["slm_2_fedmkt"]["train_loss"])
-        loss["direct"].append(logs[i]["direct"]["train_loss"])
+    for i in range(global_epochs):
+        loss["server"].append(logs["server"][i][0]["loss"])
+        client_1_priv_loss.append(logs["client_1"]["priv"][i][0]["loss"])
+        client_1_fedmkt_loss.append(logs["client_1"]["fedmkt"][i][0]["loss"])
+        client_2_priv_loss.append(logs["client_2"]["priv"][i][0]["loss"])
+        client_2_fedmkt_loss.append(logs["client_2"]["fedmkt"][i][0]["loss"])
+        loss["control"].append(logs["control"][i][0]["loss"])
     
     # Averaging client loss values, due to being separated to a private trainer and FedMKT trainer
-    for i in range(len(logs)):
+    for i in range(global_epochs):
         loss["client_1"].append((client_1_priv_loss[i] + client_1_fedmkt_loss[i]) / 2)
         loss["client_2"].append((client_2_priv_loss[i] + client_2_fedmkt_loss[i]) / 2)
     
+    
+    plt.clf()
     plt.figure()
     for key in loss.keys():
-        x = range(1, len(logs)+1)
+        x = range(1, global_epochs+1)
         y = loss[key]
         
         plt.plot(x, y, marker='o', label=f'{log_keys_to_model[key]}')
         
         for (xi, yi) in zip(x, y):
-            plt.annotate(f'{yi}', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center')
+            plt.annotate(f'{yi:.4f}', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center')
     
     plt.title('Loss Chart by Model by Epoch')
     plt.xlabel('Epoch')
     plt.ylabel('Loss Value')
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
     plt.savefig("./graphs/loss.png")
     
     # Visualize each model's runtime accumulative by epoch
-    runtime = {
-        "server": [],
-        "client_1": [],
-        "client_2": [],
-        "direct": []
-    }
+    runtime = {}
     
-    client_1_priv_runtime = []
-    client_1_fedmkt_runtime = []
-    client_2_priv_runtime = []
-    client_2_fedmkt_runtime = []
+    server_runtime = []
+    client_1_runtime = []
+    client_2_runtime = []
     
-    for i in range(len(logs)):
-        runtime["server"].append(logs[i]["llm"]["train_runtime"])
-        client_1_priv_runtime.append(logs[i]["slm_1_priv"]["train_runtime"])
-        client_1_fedmkt_runtime.append(logs[i]["slm_1_fedmkt"]["train_runtime"])
-        client_2_priv_runtime.append(logs[i]["slm_2_priv"]["train_runtime"])
-        client_2_fedmkt_runtime.append(logs[i]["slm_2_fedmkt"]["train_runtime"])
-        runtime["direct"].append(logs[i]["direct"]["train_runtime"])
-    
-    # Summing client runtime, due to being separated to a private trainer and FedMKT trainer
+    # Storing runtime to an array by epoch, due to how FedMKT works,
+    # separating each epoch into a different training instance
+    # resulting in a runtime for each epoch 
+    # rather than a total runtime at the end of the epoch
+    # For clients, due to being separated to a private trainer and FedMKT trainer,
+    # plus a delay from waiting server to finish training and send their public logits,
+    # values by epoch needs to be summed first
     for i in range(global_epochs):
-        runtime["client_1"].append(client_1_priv_runtime[i] + client_1_fedmkt_runtime[i])
-        runtime["client_2"].append(client_2_priv_runtime[i] + client_2_fedmkt_runtime[i])
+        server_runtime.append(logs["server"][i][1]["train_runtime"])
+        epoch_runtime = (logs["client_1"]["priv"][i][1]["train_runtime"] + 
+                         logs["client_1"]["fedmkt"][i][1]["train_runtime"] + 
+                         logs["client_1"]["fedmkt"][i][1]["delay"])
+        client_1_runtime.append(epoch_runtime)
+        epoch_runtime = (logs["client_2"]["priv"][i][1]["train_runtime"] + 
+                         logs["client_2"]["fedmkt"][i][1]["train_runtime"] + 
+                         logs["client_2"]["fedmkt"][i][1]["delay"])
+        client_2_runtime.append(epoch_runtime)
     
-    # Accumulating each runtime point by its previous epoch, to show the accumulative runtime progression
-    for i in range(1, global_epochs+1):
-        runtime["client_1"][i] = sum(runtime["client_1"][0:i+1])
-        runtime["client_2"][i] = sum(runtime["client_2"][0:i+1])
+    runtime["direct"] = logs["control"][global_epochs+1]["train_runtime"]
     
-    plt.figure()
-    for key in runtime.keys():
-        x = range(1, len(logs)+1)
-        y = runtime[key]
-        
-        plt.plot(x, y, marker='o', label=f'{log_keys_to_model[key]}')
-        
-        for (xi, yi) in zip(x, y):
-            plt.annotate(f'{yi}', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center')
+    # Summing all runtime to get the total runtime
+    for i in range(global_epochs):
+        runtime["server"] = sum(server_runtime)
+        runtime["client_1"] = sum(client_1_runtime)
+        runtime["client_2"] = sum(client_2_runtime)
     
-    plt.title('Runtime Chart by Model by Epoch')
-    plt.xlabel('Epoch')
-    plt.ylabel('Runtime (Accumulative)')
-    plt.legend()
-    plt.grid(True)
+    plt.clf()
+    labels = ["Control", "Server", "Client 1", "Client 2"]
+    bars = plt.bar(runtime.keys(), runtime.values(), label=labels, bottom=np.zeros(3))
+    plt.title('Total Runtime Chart by Model')
+    plt.ylabel('Runtime (in Seconds)')
+    plt.bar_label(bars, fmt='%.0f')
     plt.savefig("./graphs/runtime.png")
 
 def run(ctx: Context):
-    global logs
-    
     pub_data_dir = f'{dataset_directory}/public'
     priv_data_dir_1 = f'{dataset_directory}/private_1'
     priv_data_dir_2 = f'{dataset_directory}/private_2'
     
     if ctx.is_on_arbiter:
+        server_logs = {}
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-        logs["llm"] = train_llm(ctx, pub_data_dir)
+        server_logs = train_llm(ctx, pub_data_dir)
+        with open("logs/server_logs.json", "w") as fout:
+            json.dump(server_logs, fout)
     elif ctx.is_on_guest:
+        client_1_logs = {}
         os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-        logs["slm_1_priv"], logs["slm_1_fedmkt"] = train_slm(ctx, pub_data_dir, priv_data_dir_1)
+        client_1_logs["priv"], client_1_logs["fedmkt"] = train_slm(ctx, pub_data_dir, priv_data_dir_1)
+        with open("logs/client_1_logs.json", "w") as fout:
+            json.dump(client_1_logs, fout)
     else:
+        client_2_logs = {}
         if ctx.local.party[1] == "9999":
             os.environ["CUDA_VISIBLE_DEVICES"] = "2"
         else:
             raise ValueError(f"party_id={ctx.local.party[1]} is illegal")
 
-        logs["slm_2_priv"], logs["slm_2_fedmkt"] = train_slm(ctx, pub_data_dir, priv_data_dir_2)
+        client_2_logs["priv"], client_2_logs["fedmkt"] = train_slm(ctx, pub_data_dir, priv_data_dir_2)
+        with open("logs/client_2_logs.json", "w") as fout:
+            json.dump(client_2_logs, fout)
     
     data_dir = f"{dataset_directory}/all"
     model_dir = "models"
+    logs_dir = "logs"
     
     if ctx.is_on_guest:
-        logs["direct"] = train_direct(data_dir)
-        log_keys = ["llm", "slm_1_priv", "slm_1_fedmkt", "slm_2_priv", "slm_2_fedmkt", "direct"]
-        # Loop to wait until all logs are stored before continuing to test
-        while not all(key in log_keys for key in logs.keys()):
-            continue
-        with open("logs/logs.json", "w") as fout:
-            json.dump(logs, fout)
-        with open("logs/logs.json", "r") as fin:
-            logs = json.loads(fin.read())
-        test(data_dir, model_dir, logs)
+        control_logs = {}
+        control_logs = train_direct(data_dir)
+        with open("logs/control_logs.json", "w") as fout:
+            json.dump(control_logs, fout)
+        test(data_dir, model_dir, logs_dir)
 
 if __name__ == "__main__":
     login_hf()
