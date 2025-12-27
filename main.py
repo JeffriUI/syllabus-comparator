@@ -432,8 +432,9 @@ def test(data_dir, model_dir, logs_dir):
     }
     
     plt.clf()
+    bottom = np.zeros(4)
     for trainer, runtime in runtime_values.items():
-        bars = plt.bar(labels, runtime, label=trainer, bottom=np.zeros(4))
+        bars = plt.bar(labels, runtime, label=trainer, bottom=bottom)
         bottom += runtime
         
         plt.bar_label(bars, fmt='%.0f')
