@@ -398,10 +398,8 @@ def test(data_dir, model_dir, logs_dir):
     server_runtime = []
     client_1_priv_runtime = []
     client_1_fedmkt_runtime = []
-    client_1_runtime = []
     client_2_priv_runtime = []
     client_2_fedmkt_runtime = []
-    client_2_runtime = []
     
     # Storing runtime to an array by epoch, due to how FedMKT works,
     # separating each epoch into a different training instance
@@ -412,18 +410,10 @@ def test(data_dir, model_dir, logs_dir):
     # values by epoch needs to be summed first
     for i in range(global_epochs):
         server_runtime.append(logs["server"][i][1]["train_runtime"])
-        epoch_runtime = (logs["client_1"]["priv"][i][1]["train_runtime"] + 
-                         logs["client_1"]["fedmkt"][i][1]["train_runtime"] + 
-                         logs["client_1"]["fedmkt"][i][1]["delay"])
         client_1_priv_runtime.append(logs["client_1"]["priv"][i][1]["train_runtime"])
         client_1_fedmkt_runtime.append(logs["client_1"]["fedmkt"][i][1]["train_runtime"])
-        client_1_runtime.append(epoch_runtime)
-        epoch_runtime = (logs["client_2"]["priv"][i][1]["train_runtime"] + 
-                         logs["client_2"]["fedmkt"][i][1]["train_runtime"] + 
-                         logs["client_2"]["fedmkt"][i][1]["delay"])
         client_2_priv_runtime.append(logs["client_2"]["priv"][i][1]["train_runtime"])
         client_2_fedmkt_runtime.append(logs["client_2"]["fedmkt"][i][1]["train_runtime"])
-        client_2_runtime.append(epoch_runtime)
     
     runtime["direct"] = logs["control"][global_epochs]["train_runtime"]
     
@@ -434,16 +424,23 @@ def test(data_dir, model_dir, logs_dir):
         runtime["client_1_fedmkt"] = sum(client_1_fedmkt_runtime)
         runtime["client_2_priv"] = sum(client_2_priv_runtime)
         runtime["client_2_fedmkt"] = sum(client_2_fedmkt_runtime)
-        runtime["client_1"] = sum(client_1_runtime)
-        runtime["client_2"] = sum(client_2_runtime)
+    
+    labels = ["Control", "Server", "Client 1", "Client 2"]
+    runtime_values = {
+        'Private Trainer': np.array([runtime["control"], 0, runtime["client_1_priv"], runtime["client_2_priv"]]),
+        'FedMKT Trainer': np.array([0, runtime["server"], runtime["client_1_fedmkt"], runtime["client_2_fedmkt"]])
+    }
     
     plt.clf()
-    labels = ["Control", "Server", "Client 1 Private Trainer", "Client 1 FedMKT Trainer",
-              "Client 2 Private Trainer", "Client 2 FedMKT Trainer", "Client 1 Total", "Client 2 Total"]
-    bars = plt.bar(runtime.keys(), runtime.values(), label=labels, bottom=np.zeros(8))
+    for trainer, runtime in runtime_values.items():
+        bars = plt.bar(labels, runtime, label=trainer, bottom=np.zeros(4))
+        bottom += runtime
+        
+        plt.bar_label(bars, fmt='%.0f')
+    
     plt.title('Total Runtime Chart by Model')
     plt.ylabel('Runtime (in Seconds)')
-    plt.bar_label(bars, fmt='%.0f')
+    plt.legend()
     plt.tight_layout()
     plt.savefig("./graphs/runtime.png")
 
