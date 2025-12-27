@@ -332,11 +332,11 @@ def test(data_dir, model_dir, logs_dir):
         plt.tight_layout()
         plt.savefig(f"./graphs/confusion_matrix_{model}.png")
     
-    log_keys_to_model = {
+    log_keys_to_label = {
         "server": "Server (RoBERTa-355M)",
         "client_1": "Client 1 (RoBERTa-125M)",
         "client_2": "Client 2 (RoBERTa-125M)",
-        "direct": "Standalone (RoBERTa-125M)"
+        "control": "Control (RoBERTa-125M)"
     }
     
     filenames = ["server", "client_1", "client_2", "control"]
@@ -365,7 +365,7 @@ def test(data_dir, model_dir, logs_dir):
         client_1_fedmkt_loss.append(logs["client_1"]["fedmkt"][i][0]["loss"])
         client_2_priv_loss.append(logs["client_2"]["priv"][i][0]["loss"])
         client_2_fedmkt_loss.append(logs["client_2"]["fedmkt"][i][0]["loss"])
-        loss["control"].append(logs["control"][i][0]["loss"])
+        loss["control"].append(logs["control"][i]["loss"])
     
     # Averaging client loss values, due to being separated to a private trainer and FedMKT trainer
     for i in range(global_epochs):
@@ -379,7 +379,7 @@ def test(data_dir, model_dir, logs_dir):
         x = range(1, global_epochs+1)
         y = loss[key]
         
-        plt.plot(x, y, marker='o', label=f'{log_keys_to_model[key]}')
+        plt.plot(x, y, marker='o', label=f'{log_keys_to_label[key]}')
         
         for (xi, yi) in zip(x, y):
             plt.annotate(f'{yi:.4f}', (xi, yi), textcoords="offset points", xytext=(0, 10), ha='center')
@@ -396,7 +396,11 @@ def test(data_dir, model_dir, logs_dir):
     runtime = {}
     
     server_runtime = []
+    client_1_priv_runtime = []
+    client_1_fedmkt_runtime = []
     client_1_runtime = []
+    client_2_priv_runtime = []
+    client_2_fedmkt_runtime = []
     client_2_runtime = []
     
     # Storing runtime to an array by epoch, due to how FedMKT works,
@@ -411,26 +415,36 @@ def test(data_dir, model_dir, logs_dir):
         epoch_runtime = (logs["client_1"]["priv"][i][1]["train_runtime"] + 
                          logs["client_1"]["fedmkt"][i][1]["train_runtime"] + 
                          logs["client_1"]["fedmkt"][i][1]["delay"])
+        client_1_priv_runtime.append(logs["client_1"]["priv"][i][1]["train_runtime"])
+        client_1_fedmkt_runtime.append(logs["client_1"]["fedmkt"][i][1]["train_runtime"])
         client_1_runtime.append(epoch_runtime)
         epoch_runtime = (logs["client_2"]["priv"][i][1]["train_runtime"] + 
                          logs["client_2"]["fedmkt"][i][1]["train_runtime"] + 
                          logs["client_2"]["fedmkt"][i][1]["delay"])
+        client_2_priv_runtime.append(logs["client_2"]["priv"][i][1]["train_runtime"])
+        client_2_fedmkt_runtime.append(logs["client_2"]["fedmkt"][i][1]["train_runtime"])
         client_2_runtime.append(epoch_runtime)
     
-    runtime["direct"] = logs["control"][global_epochs+1]["train_runtime"]
+    runtime["direct"] = logs["control"][global_epochs]["train_runtime"]
     
     # Summing all runtime to get the total runtime
     for i in range(global_epochs):
         runtime["server"] = sum(server_runtime)
+        runtime["client_1_priv"] = sum(client_1_priv_runtime)
+        runtime["client_1_fedmkt"] = sum(client_1_fedmkt_runtime)
+        runtime["client_2_priv"] = sum(client_2_priv_runtime)
+        runtime["client_2_fedmkt"] = sum(client_2_fedmkt_runtime)
         runtime["client_1"] = sum(client_1_runtime)
         runtime["client_2"] = sum(client_2_runtime)
     
     plt.clf()
-    labels = ["Control", "Server", "Client 1", "Client 2"]
-    bars = plt.bar(runtime.keys(), runtime.values(), label=labels, bottom=np.zeros(3))
+    labels = ["Control", "Server", "Client 1 Private Trainer", "Client 1 FedMKT Trainer",
+              "Client 2 Private Trainer", "Client 2 FedMKT Trainer", "Client 1 Total", "Client 2 Total"]
+    bars = plt.bar(runtime.keys(), runtime.values(), label=labels, bottom=np.zeros(8))
     plt.title('Total Runtime Chart by Model')
     plt.ylabel('Runtime (in Seconds)')
     plt.bar_label(bars, fmt='%.0f')
+    plt.tight_layout()
     plt.savefig("./graphs/runtime.png")
 
 def run(ctx: Context):
