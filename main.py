@@ -436,13 +436,13 @@ def test(data_dir, model_dir, logs_dir):
     for trainer, runtime in runtime_values.items():
         bars = plt.bar(labels, runtime, label=trainer, bottom=bottom)
         bottom += runtime
-        
-        plt.bar_label(bars, fmt='%.0f')
+        max_limit = (int(max(bottom) / 5000) + 1) * 5000
+        plt.ylim(top=max_limit)
+        plt.bar_label(bars, fmt='%.0f', label_type='center')
     
     plt.title('Total Runtime Chart by Model')
     plt.ylabel('Runtime (in Seconds)')
     plt.legend()
-    plt.tight_layout()
     plt.savefig("./graphs/runtime.png")
 
 def run(ctx: Context):
