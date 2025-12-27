@@ -415,7 +415,7 @@ def test(data_dir, model_dir, logs_dir):
         client_2_priv_runtime.append(logs["client_2"]["priv"][i][1]["train_runtime"])
         client_2_fedmkt_runtime.append(logs["client_2"]["fedmkt"][i][1]["train_runtime"])
     
-    runtime["direct"] = logs["control"][global_epochs]["train_runtime"]
+    runtime["control"] = logs["control"][global_epochs]["train_runtime"]
     
     # Summing all runtime to get the total runtime
     for i in range(global_epochs):
