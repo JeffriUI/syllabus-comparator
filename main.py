@@ -307,6 +307,7 @@ def test(data_dir, model_dir, logs_dir):
     plt.ylabel('Precision')
     plt.title('Precision-Recall Curves (All RoBERTa-125M)')
     plt.legend()
+    plt.tight_layout()
     plt.savefig("./graphs/prec_rec_curve.png")
     
     # Visualize Accuracy-scores distribution
@@ -314,6 +315,7 @@ def test(data_dir, model_dir, logs_dir):
     bars = plt.bar(acc_scores.keys(), acc_scores.values(), bottom=np.zeros(3))
     plt.title('Accuracy-scores Distribution')
     plt.bar_label(bars, fmt='%.4f')
+    plt.tight_layout()
     plt.savefig("./graphs/acc_scores.png")
     
     # Visualize F1-scores distribution
@@ -321,6 +323,7 @@ def test(data_dir, model_dir, logs_dir):
     bars = plt.bar(f1_scores.keys(), f1_scores.values(), bottom=np.zeros(3))
     plt.title('F1-scores Distribution')
     plt.bar_label(bars, fmt='%.4f')
+    plt.tight_layout()
     plt.savefig("./graphs/f1_scores.png")
     
     # Visualize Confusion Matrix
@@ -443,6 +446,7 @@ def test(data_dir, model_dir, logs_dir):
     plt.title('Total Runtime Chart by Model')
     plt.ylabel('Runtime (in Seconds)')
     plt.legend()
+    plt.tight_layout()
     plt.savefig("./graphs/runtime.png")
 
 def run(ctx: Context):
