@@ -7,3 +7,5 @@ modules/models/__pycache__
 modules/fedmkt/__pycache__
 modules/fedmkt/token_alignment/__pycache__
 modules/fedmkt/utils/__pycache__
+modules/trainer/__pycache__
+outputs
